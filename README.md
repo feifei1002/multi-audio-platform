@@ -24,5 +24,5 @@ Ensure you have the following installed:
 
 ## Development Mode
 1. ```npm run dev``` to run both backend and frontend simultaneously.
-2. Go to ```http://{YOUR_IP}:8080``` or ```http://localhost:8080``` if the page displays some data of audios means your are connected to the database.
+2. Go to ```http://{YOUR_IP}:8080/audio``` or ```http://localhost:8080/audio``` if the page displays some data of audios means your are connected to the database.
 3. Go to ```http://{YOUR_IP}:8081``` or ```http://localhost:8081``` if the page displays ```Backend is reachable!``` means every works.
