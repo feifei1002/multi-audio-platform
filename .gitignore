@@ -1,16 +1,9 @@
-# Compiled class file
+# Root rules
+node_modules/
 *.class
-
-# Log file
 *.log
-
-# BlueJ files
 *.ctxt
-
-# Mobile Tools for Java (J2ME)
 .mtj.tmp/
-
-# Package Files #
 *.jar
 *.war
 *.nar
@@ -18,7 +11,86 @@
 *.zip
 *.tar.gz
 *.rar
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+.vscode/
+
+# Server rules (prefixed)
+server/HELP.md
+server/.gradle
+server/build/
+!server/gradle/wrapper/gradle-wrapper.jar
+!server/**/src/main/**/build/
+!server/**/src/test/**/build/
+
+### STS ###
+server/.apt_generated
+server/.classpath
+server/.factorypath
+server/.project
+server/.settings
+server/.springBeans
+server/.sts4-cache
+server/bin/
+!server/**/src/main/**/bin/
+!server/**/src/test/**/bin/
+
+### IntelliJ IDEA ###
+server/.idea
+server/*.iws
+server/*.iml
+server/*.ipr
+server/out/
+!server/**/src/main/**/out/
+!server/**/src/test/**/out/
+
+### NetBeans ###
+server/nbproject/private/
+server/nbbuild/
+server/dist/
+server/nbdist/
+server/.nb-gradle/
+
+# Client rules (prefixed)
+client/node_modules/
+client/.expo/
+client/dist/
+client/web-build/
+client/expo-env.d.ts
+
+# Native
+client/.kotlin/
+client/*.orig.*
+client/*.jks
+client/*.p8
+client/*.p12
+client/*.key
+client/*.mobileprovision
+
+# Metro
+client/.metro-health-check*
+
+# debug
+client/npm-debug.*
+client/yarn-debug.*
+client/yarn-error.*
+
+# macOS
+client/.DS_Store
+client/*.pem
+
+# local env files
+client/.env*.local
+client/.env
+
+# typescript
+client/*.tsbuildinfo
+
+client/app-example
+
+# generated native folders
+client/ios
+client/android
+
+# Global secret rule
+**/application-local.properties

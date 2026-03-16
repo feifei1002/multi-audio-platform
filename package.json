@@ -1,0 +1,18 @@
+{
+  "name": "multi-audio-platform",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "start:server": "cd server && gradlew.bat bootRun",
+    "start:client": "cd client && npx expo start",
+    "dev": "npx concurrently \"npm run start:server\" \"npm run start:client\"",
+    "db:create": "psql -U postgres -c \"CREATE DATABASE audio_platform_db;\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
