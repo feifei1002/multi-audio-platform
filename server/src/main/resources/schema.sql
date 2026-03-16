@@ -1,5 +1,0 @@
-CREATE TABLE IF NOT EXISTS audios (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    author VARCHAR(255) NOT NULL
-);
