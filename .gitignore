@@ -95,3 +95,7 @@ client/android
 
 # Global secret rule
 **/application-local.properties
+
+# IntelliJ
+**/*.iml
+.idea/
