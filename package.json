@@ -7,7 +7,7 @@
     "server"
   ],
   "scripts": {
-    "start:server": "cd server && (gradlew bootRun || ./gradlew bootRun)",
+    "start:server": "cd server && (gradlew.bat bootRun || (chmod +x gradlew && ./gradlew bootRun))",
     "start:client": "cd client && npx expo start",
     "dev": "npx concurrently \"npm run start:server\" \"npm run start:client\""
   },
