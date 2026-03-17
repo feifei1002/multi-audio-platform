@@ -14,7 +14,8 @@ Ensure you have the following installed:
 
 
 ## Backend Configuration
-1. ```npm run start:server``` to run the backend.
+1. For **macOS**, please run this command first in your ```root``` folder: ```chmod +x server/gradlew```.
+2. ```npm run start:server``` to run the backend.
 
 ## Frontend Configuration
 1. Create a ```.env``` file in the ```/client``` folder (```.env.example``` is provided) to point to your backend.
