@@ -4,11 +4,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.multi_audio_platform.model.Audio;
+import com.multi_audio_platform.model.AudioType;
 import com.multi_audio_platform.service.AudioService;
 
 @RestController
@@ -28,6 +30,21 @@ public class AudioController {
     @GetMapping("/audio")
     public List<Audio> getAllAudio() {
         return audioService.getAllAudio();
+    }
+
+    @GetMapping("/audio/type/{type}")
+    public List<Audio> getAudioByType(@PathVariable AudioType type) {
+        return audioService.getAudioByType(type);
+    }
+
+    @GetMapping("/audio/author/{author}")
+    public List<Audio> getAudioByAuthor(@PathVariable String author) {
+        return audioService.getAudioByAuthor(author);
+    }
+
+    @GetMapping("/audio/name/{name}")
+    public List<Audio> getAudioByName(@PathVariable String name) {
+        return audioService.getAudioByName(name);
     }
 
     @PostMapping("/audio/add")
