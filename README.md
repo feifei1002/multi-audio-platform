@@ -21,7 +21,6 @@ Ensure you have the following installed:
 ## Frontend Configuration
 1. Create a `.env` file in the `/client` folder (`.env.example` is provided) to point to your backend.
 2. Change your directory to the `client` folder, and then run this command: `npm install`.
-3. For **macOS users with ARM64 (M1, M2...)**, please run this extra command: `npm install -D lightningcss-darwin-arm64`.
 
 ## Run Application
 
