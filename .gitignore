@@ -1,6 +1,5 @@
 # Root rules
 node_modules/
-package-lock.json
 *.class
 *.log
 *.ctxt
