@@ -12,6 +12,6 @@
     "dev": "npx concurrently \"npm run start:server\" \"npm run start:client\""
   },
   "devDependencies": {
-    "concurrently": "~8.2.0"
+    "concurrently": "^8.2.0"
   }
 }
