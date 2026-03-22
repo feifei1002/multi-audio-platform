@@ -22,7 +22,7 @@ import lombok.NoArgsConstructor;
 public class Audio {
     
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    public Long id;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false)
