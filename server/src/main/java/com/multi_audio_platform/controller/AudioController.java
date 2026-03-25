@@ -3,21 +3,33 @@ package com.multi_audio_platform.controller;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.multi_audio_platform.model.Audio;
+import com.multi_audio_platform.model.AudioType;
+import com.multi_audio_platform.model.Cover;
 import com.multi_audio_platform.service.AudioService;
+import com.multi_audio_platform.service.CoverService;
+
+import tools.jackson.databind.ObjectMapper;
 
 @RestController
 public class AudioController {
 
     private final AudioService audioService;
+    private final CoverService coverService;
     
-    public AudioController(AudioService audioService) {
+    public AudioController(AudioService audioService, CoverService coverService) {
         this.audioService = audioService;
+        this.coverService = coverService;
     }
     
     @GetMapping("/")
@@ -30,9 +42,37 @@ public class AudioController {
         return audioService.getAllAudio();
     }
 
-    @PostMapping("/audio/add")
-    public Audio addAudio(@RequestBody Audio audio) {
-        return audioService.createAudio(audio);
+    @GetMapping("/audio/type/{type}")
+    public List<Audio> getAudioByType(@PathVariable AudioType type) {
+        return audioService.getAudioByType(type);
+    }
+
+    @GetMapping("/audio/author/{author}")
+    public List<Audio> getAudioByAuthor(@PathVariable String author) {
+        return audioService.getAudioByAuthor(author);
+    }
+
+    @GetMapping("/audio/name/{name}")
+    public List<Audio> getAudioByName(@PathVariable String name) {
+        return audioService.getAudioByName(name);
+    }
+
+    @PostMapping(value = "/audio/add", consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Audio> addAudio(@RequestPart("audio") String audioJSON, @RequestPart("file") MultipartFile coverFile) {
+        
+        ObjectMapper objectMapper = new ObjectMapper();
+        Audio audio = objectMapper.readValue(audioJSON, Audio.class);
+
+        Cover savedCover;
+        try {
+            savedCover = coverService.saveCover(coverFile);
+            audio.setCover(savedCover);
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        return ResponseEntity.ok(audioService.createAudio(audio, coverFile));
     }
 
 }
