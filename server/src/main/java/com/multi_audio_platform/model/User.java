@@ -33,6 +33,13 @@ public class User {
     @Column(name = "email", nullable = false, unique = true)
     private String email;
 
+    @Column(name = "verified")
+    @Builder.Default
+    private Boolean verified = false;
+
+    @Column(name = "verification_token")
+    private String verificationToken;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

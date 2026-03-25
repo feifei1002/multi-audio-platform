@@ -26,7 +26,7 @@ interface SignUpScreenProps {
   onNavigateToSignIn?: () => void;
 }
 
-// ─── Real backend ─────────────────────────────────────────────────────────────
+// ─── backend ─────────────────────────────────────────────────────────────
 
 async function registerUser(form: SignUpForm): Promise<{ success: boolean; message: string }> {
   try {
@@ -186,7 +186,7 @@ export default function SignUpScreen({ onNavigateToSignIn }: SignUpScreenProps) 
               label="First Name"
               value={form.firstName}
               onChangeText={setField('firstName')}
-              placeholder="Ada"
+              placeholder=""
               borderColor={theme.backgroundSelected}
               textColor={theme.text}
               placeholderColor={placeholderColor}
@@ -196,7 +196,7 @@ export default function SignUpScreen({ onNavigateToSignIn }: SignUpScreenProps) 
               label="Last Name"
               value={form.lastName}
               onChangeText={setField('lastName')}
-              placeholder="Lovelace"
+              placeholder=""
               borderColor={theme.backgroundSelected}
               textColor={theme.text}
               placeholderColor={placeholderColor}
@@ -217,7 +217,7 @@ export default function SignUpScreen({ onNavigateToSignIn }: SignUpScreenProps) 
               label="Email"
               value={form.email}
               onChangeText={setField('email')}
-              placeholder="ada@lovelace.io"
+              placeholder="example@gmail.com"
               keyboardType="email-address"
               borderColor={theme.backgroundSelected}
               textColor={theme.text}

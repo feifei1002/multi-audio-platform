@@ -20,7 +20,7 @@ interface SignInScreenProps {
   onNavigateToSignUp?: () => void;
 }
 
-// ─── Real backend ─────────────────────────────────────────────────────────────
+// ─── backend ─────────────────────────────────────────────────────────────
 
 async function sendOtp(email: string): Promise<{ success: boolean; message: string }> {
   try {
@@ -307,7 +307,7 @@ export default function SignInScreen({ onNavigateToSignUp }: SignInScreenProps) 
                 label="Email"
                 value={email}
                 onChangeText={setEmail}
-                placeholder="ada@lovelace.io"
+                placeholder="example@gmail.com"
                 keyboardType="email-address"
                 borderColor={theme.backgroundSelected}
                 textColor={theme.text}

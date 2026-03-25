@@ -1,6 +1,7 @@
 package com.multi_audio_platform.service;
 
 import com.multi_audio_platform.dto.RegisterResponse;
+import com.multi_audio_platform.model.User;
 import com.multi_audio_platform.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.mail.SimpleMailMessage;
@@ -10,16 +11,17 @@ import org.springframework.stereotype.Service;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
 public class OtpService {
 
-    private final JavaMailSender mailSender;
     private final UserRepository userRepository;
+    private final JavaMailSender mailSender;
 
-    // In-memory OTP store: email -> [otp, expiry]
+    // In-memory OTP store: email -> OtpEntry
     private final Map<String, OtpEntry> otpStore = new ConcurrentHashMap<>();
 
     private static final int OTP_EXPIRY_MINUTES = 5;
@@ -36,8 +38,16 @@ public class OtpService {
         }
 
         // Check if user exists
-        if (!userRepository.existsByEmail(email.toLowerCase().trim())) {
+        Optional<User> optionalUser = userRepository.findByEmail(email.toLowerCase().trim());
+        if (optionalUser.isEmpty()) {
             return new RegisterResponse(false, "No account found with this email.");
+        }
+
+        // Block unverified users
+        User user = optionalUser.get();
+        if (!Boolean.TRUE.equals(user.getVerified())) {
+            return new RegisterResponse(false,
+                "Please verify your email first. Check your inbox for the activation link.");
         }
 
         // Generate 6-digit OTP
@@ -45,17 +55,17 @@ public class OtpService {
         LocalDateTime expiry = LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES);
         otpStore.put(email.toLowerCase().trim(), new OtpEntry(otp, expiry));
 
-        // Send email
+        // Send OTP email
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(email);
-            message.setSubject("Your Sign-In Code");
+            message.setSubject("Your MultiAudio Player Sign-In Code");
             message.setText(
-                "Hi,\n\n" +
+                "Hi " + user.getFirstName() + ",\n\n" +
                 "Your one-time sign-in code is: " + otp + "\n\n" +
                 "This code expires in " + OTP_EXPIRY_MINUTES + " minutes.\n\n" +
                 "If you didn't request this, please ignore this email.\n\n" +
-                "— Multi Audio Platform Team"
+                "— The MultiAudio Player Team"
             );
             mailSender.send(message);
         } catch (Exception e) {
@@ -88,7 +98,7 @@ public class OtpService {
             return new RegisterResponse(false, "Incorrect OTP. Please try again.");
         }
 
-        // OTP is valid — remove it so it can't be reused
+        // Valid — remove so it can't be reused
         otpStore.remove(key);
         return new RegisterResponse(true, "Signed in successfully!");
     }
