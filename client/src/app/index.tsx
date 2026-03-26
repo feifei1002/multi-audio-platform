@@ -6,12 +6,17 @@ import { ContentsSwitchButton } from '@/components/ContentsSwitchButton';
 import { PlayToggleButton } from '@/components/PlayToggleButton';
 import { SettingsButton } from '@/components/SettingsButton';
 import { useTheme } from '@/hooks/use-theme';
+import { AudioInformationBoard } from '@/components/AudioInformationBoard';
+import { AudioData } from '@/types/audio';
 
 export default function App() {
   const theme = useTheme();
   const [message, setMessage] = useState("Trying to connect...");
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(55);
+  const [audio, setAudio] = useState<AudioData | null>(null);
+  const [audioId, setAudioId] = useState<number>(1);
+  const [loading, setLoading] = useState(true);
 
   const playbackLabel = isPlaying ? 'Playing' : 'Paused';
 
@@ -24,10 +29,13 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetch(`${process.env.EXPO_PUBLIC_API_URL}/`)
+    fetch(`${process.env.EXPO_PUBLIC_API_URL}/audio/${audioId}`)
       .then(res => res.json())
-      .then(data => setMessage(data.status))
-      .catch(err => setMessage("Connection Failed: " + err.message));
+      .then(data => {
+        setAudio(data);
+        setLoading(false);
+      })
+      .catch(err => setLoading(false));
   }, []);
 
   return (
@@ -51,7 +59,12 @@ export default function App() {
           accessibilityLabel="Main playback panel"
         >
           <View style={styles.headerRow}>
-            <Text style={[styles.title, { color: theme.text }]}>Glass Player</Text>
+            <Text style={[styles.title, { color: theme.text }]}>{audio?.name || "Glass Player"}</Text>
+            {audio?.author && (
+              <Text style={[styles.authorHeader, { color: theme.textSecondary }]}>
+                {audio.author}
+              </Text>
+            )}
             <Text style={[styles.status, { color: theme.textSecondary }]}>
               {playbackLabel} • Volume {volume}%
             </Text>
@@ -60,7 +73,9 @@ export default function App() {
 
           <View style={[styles.heroCard, { backgroundColor: theme.backgroundSelected }]}
             accessibilityLabel="Album or podcast card slot"
-          />
+          >
+            <AudioInformationBoard audio={audio} loading={loading} theme={theme} />
+          </View>
         </View>
       </View>
 
@@ -169,6 +184,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
+  },
+  authorHeader: {
+    fontSize: 18,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    marginBottom: Spacing.one,
   },
   status: {
     fontSize: 12,
