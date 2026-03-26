@@ -10,9 +10,14 @@ Ensure you have the following installed:
 ## Database Setup
 1. Navigate to: `server/src/main/resources/`.
 2. Create a file named `application-local.properties` (`application-local.properties.example` is provided).
-3. Replace `provided_username` and `provided_password` with your the username and password from Neon. The username and password will be provided in a txt file in our Discord server.
+3. Replace `provided_username` and `provided_password` with your username and password from Neon. The username and password will be provided in a txt file in our Discord server.
 
-***Please make sure you configure database setup first before setting up your frontend and backend, otherwise the application will fail to run.***
+## Spring Email Setup
+1. Navigate to: `server/src/main/resources/`.
+2. Create a file named `application-local.properties` (`application-local.properties.example` is provided).
+3. Replace `provided_email_username` and `provided_email_password` with your username and password provided on our Discord server.
+
+***Please make sure you configure database and spring email setups first before setting up your frontend and backend, otherwise the application will fail to run.***
 
 ## Backend Configuration
 1. For **macOS** users, please run this command first from the project `root` folder: `chmod +x server/gradlew`.
