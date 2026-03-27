@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   typeTag: {
     fontSize: 10,
     fontWeight: 'bold',
-    color: '#3478F6',
+    color: '#FFFFFF',
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
@@ -88,17 +88,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     color: '#FFFFFF',
+    marginBottom: -2,
   },
   author: {
     fontSize: 12,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: -2,
   },
   description: {
     fontSize: 10,
     lineHeight: 16,
     textAlign: 'center',
     color: 'rgba(255, 255, 255, 0.6)',
-    paddingHorizontal: 8,
+    marginBottom: -2,
   },
 });
