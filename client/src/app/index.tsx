@@ -59,12 +59,7 @@ export default function App() {
           accessibilityLabel="Main playback panel"
         >
           <View style={styles.headerRow}>
-            <Text style={[styles.title, { color: theme.text }]}>{audio?.name || "Glass Player"}</Text>
-            {audio?.author && (
-              <Text style={[styles.authorHeader, { color: theme.textSecondary }]}>
-                {audio.author}
-              </Text>
-            )}
+            <Text style={[styles.title, { color: theme.text }]}>Glass Player</Text>
             <Text style={[styles.status, { color: theme.textSecondary }]}>
               {playbackLabel} • Volume {volume}%
             </Text>
@@ -185,12 +180,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
   },
-  authorHeader: {
-    fontSize: 18,
-    fontWeight: '500',
-    letterSpacing: 0.5,
-    marginBottom: Spacing.one,
-  },
   status: {
     fontSize: 12,
   },
@@ -199,8 +188,9 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     width: '100%',
-    height: 220,
+    height: 320,
     borderRadius: 28,
+    overflow: 'hidden',
   },
   progressDock: {
     position: 'absolute',

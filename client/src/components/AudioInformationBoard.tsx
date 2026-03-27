@@ -32,10 +32,22 @@ export function AudioInformationBoard({audio, loading, theme} : Props) {
             {audio.cover?.data && (
                 <Image
                 source={{ uri: `data:${audio.cover.contentType};base64,${audio.cover.data}` }} 
-                style={styles.fullCover}
+                style={styles.coverImage}
                 resizeMode="cover" 
                 />
             )}
+
+            {/*Display audio details */}
+            <View style={styles.audioDetails}>
+              <Text style={styles.typeTag}>{audio.type?.toUpperCase() || 'MUSIC'}</Text>
+              <Text style={styles.title}>{audio.name}</Text>
+              <Text style={styles.author}>{audio.author}</Text>
+              {audio.description && (
+              <Text style={styles.description} numberOfLines={2}>
+              {audio.description}
+    </Text>
+  )}
+            </View>
 
         </View>
     );
@@ -44,41 +56,49 @@ export function AudioInformationBoard({audio, loading, theme} : Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-  },
-  overlay: {
-    padding: Spacing.four,
-    backgroundColor: 'rgba(0,0,0,0.4)', 
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    flexDirection: 'column',
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  fullCover: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: 28,
+  coverImage: {
+      width: '100%',
+      height: '80%',
+      borderRadius: 28,
+
   },
-  typeBadge: {
+  audioDetails: {
+    width: '100%',
+    height: '20%',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  typeTag: {
     fontSize: 10,
     fontWeight: 'bold',
-    color: '#2D6BE4',
+    color: '#3478F6',
     letterSpacing: 1,
-    marginBottom: 2,
+    textTransform: 'uppercase',
   },
   title: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   author: {
-    fontSize: 14,
-    marginBottom: 6,
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   description: {
-    fontSize: 12,
+    fontSize: 10,
     lineHeight: 16,
-    opacity: 0.8,
+    textAlign: 'center',
+    color: 'rgba(255, 255, 255, 0.6)',
+    paddingHorizontal: 8,
   },
 });
