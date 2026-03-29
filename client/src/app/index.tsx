@@ -59,7 +59,8 @@ export default function App() {
           accessibilityLabel="Main playback panel"
         >
           <View style={styles.headerRow}>
-            <Text style={[styles.title, { color: theme.text }]}>Glass Player</Text>
+            <Text style={[styles.typeTag, { color: theme.text }]}>{audio?.type?.toUpperCase()}</Text>
+            <Text style={[styles.title, { color: theme.text }]}>{audio?.name}</Text>
             <Text style={[styles.status, { color: theme.textSecondary }]}>
               {playbackLabel} • Volume {volume}%
             </Text>
@@ -175,6 +176,13 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     gap: Spacing.one,
+  },
+  typeTag: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   title: {
     fontSize: 24,

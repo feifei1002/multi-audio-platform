@@ -39,8 +39,6 @@ export function AudioInformationBoard({audio, loading, theme} : Props) {
 
             {/*Display audio details */}
             <View style={styles.audioDetails}>
-              <Text style={styles.typeTag}>{audio.type?.toUpperCase() || 'MUSIC'}</Text>
-              <Text style={styles.title}>{audio.name}</Text>
               <Text style={styles.author}>{audio.author}</Text>
               {audio.description && (
               <Text style={styles.description} numberOfLines={2}>
@@ -77,28 +75,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  typeTag: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: -2,
-  },
   author: {
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.8)',
     marginBottom: -2,
   },
   description: {
-    fontSize: 10,
-    lineHeight: 16,
+    fontSize: 12,
+    lineHeight: 18,
     textAlign: 'center',
     color: 'rgba(255, 255, 255, 0.6)',
     marginBottom: -2,
