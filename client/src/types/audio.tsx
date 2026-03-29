@@ -5,7 +5,7 @@ export interface AudioData {
   type?: string;
   description?: string;
   cover?: {
-    contentType: string;
+    filename?: string;
     data: string;
   };
 }

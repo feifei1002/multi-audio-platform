@@ -30,12 +30,15 @@ export default function App() {
 
   useEffect(() => {
     fetch(`${process.env.EXPO_PUBLIC_API_URL}/audio/${audioId}`)
-      .then(res => res.json())
+      .then(response => response.json())
       .then(data => {
         setAudio(data);
-        setLoading(false);
+        setMessage('Connected');
       })
-      .catch(err => setLoading(false));
+      .catch(err => {
+        setLoading(false);
+        setMessage('Failed to connect');
+      });
   }, []);
 
   return (

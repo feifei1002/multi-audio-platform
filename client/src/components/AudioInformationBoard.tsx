@@ -1,6 +1,5 @@
 import React from 'react';
 import { ActivityIndicator, View, Text, Image, StyleSheet } from 'react-native';
-import { Spacing } from '@/constants/theme';
 import { AudioData } from '@/types/audio';
 
 interface Props {
@@ -26,12 +25,17 @@ export function AudioInformationBoard({audio, loading, theme} : Props) {
         );
     }
 
+    // Default to JPEG if content type is missing or invalid
+    const coverContentType = 
+      (audio.cover as any)?.contentType && typeof(audio.cover as any).contentType === 
+      'string' ? (audio.cover as any).contentType : 'image/jpeg';
+
     return (
         <View style={styles.container}>
             {/* Display audio cover */}
             {audio.cover?.data && (
                 <Image
-                source={{ uri: `data:${audio.cover.contentType};base64,${audio.cover.data}` }} 
+                source={{ uri: `data:${coverContentType};base64,${audio.cover.data}` }} 
                 style={styles.coverImage}
                 resizeMode="cover" 
                 />
