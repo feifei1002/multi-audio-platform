@@ -34,6 +34,7 @@ export default function App() {
       .then(data => {
         setAudio(data);
         setMessage('Connected');
+        setLoading(false);
       })
       .catch(err => {
         setLoading(false);
