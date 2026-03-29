@@ -33,8 +33,8 @@ export default function App() {
       .then(response => response.json())
       .then(data => {
         setAudio(data);
-        setMessage('Connected');
         setLoading(false);
+        setMessage('Connected');
       })
       .catch(err => {
         setLoading(false);
