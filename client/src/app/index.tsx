@@ -26,9 +26,17 @@ export default function App() {
 
   const handleTrackSwitch = (direction: 'previous' | 'next') => {
     setMessage(direction === 'next' ? 'Switched to next track' : 'Switched to previous track');
+    setAudioId((currentId) => {
+      if (direction === 'next') {
+        return currentId + 1;
+      } else {
+        return currentId > 1 ? currentId - 1 : 1; // Prevents going below 1
+      }
+    });
   };
 
   useEffect(() => {
+    setLoading(true);
     fetch(`${process.env.EXPO_PUBLIC_API_URL}/audio/${audioId}`)
       .then(response => response.json())
       .then(data => {
@@ -40,7 +48,7 @@ export default function App() {
         setLoading(false);
         setMessage('Failed to connect');
       });
-  }, []);
+  }, [audioId]);
 
   return (
     <View
