@@ -6,12 +6,17 @@ import { ContentsSwitchButton } from '@/components/ContentsSwitchButton';
 import { PlayToggleButton } from '@/components/PlayToggleButton';
 import { SettingsButton } from '@/components/SettingsButton';
 import { useTheme } from '@/hooks/use-theme';
+import { AudioInformationBoard } from '@/components/AudioInformationBoard';
+import { AudioData } from '@/types/audio';
 
 export default function App() {
   const theme = useTheme();
   const [message, setMessage] = useState("Trying to connect...");
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(55);
+  const [audio, setAudio] = useState<AudioData | null>(null);
+  const [audioId, setAudioId] = useState<number>(1);
+  const [loading, setLoading] = useState(true);
 
   const playbackLabel = isPlaying ? 'Playing' : 'Paused';
 
@@ -21,14 +26,29 @@ export default function App() {
 
   const handleTrackSwitch = (direction: 'previous' | 'next') => {
     setMessage(direction === 'next' ? 'Switched to next track' : 'Switched to previous track');
+    setAudioId((currentId) => {
+      if (direction === 'next') {
+        return currentId + 1;
+      } else {
+        return currentId > 1 ? currentId - 1 : 1; // Prevents going below 1
+      }
+    });
   };
 
   useEffect(() => {
-    fetch(`${process.env.EXPO_PUBLIC_API_URL}/`)
-      .then(res => res.json())
-      .then(data => setMessage(data.status))
-      .catch(err => setMessage("Connection Failed: " + err.message));
-  }, []);
+    setLoading(true);
+    fetch(`${process.env.EXPO_PUBLIC_API_URL}/audio/${audioId}`)
+      .then(response => response.json())
+      .then(data => {
+        setAudio(data);
+        setLoading(false);
+        setMessage('Connected');
+      })
+      .catch(err => {
+        setLoading(false);
+        setMessage('Failed to connect');
+      });
+  }, [audioId]);
 
   return (
     <View
@@ -51,7 +71,8 @@ export default function App() {
           accessibilityLabel="Main playback panel"
         >
           <View style={styles.headerRow}>
-            <Text style={[styles.title, { color: theme.text }]}>Glass Player</Text>
+            <Text style={[styles.typeTag, { color: theme.text }]}>{audio?.type?.toUpperCase()}</Text>
+            <Text style={[styles.title, { color: theme.text }]}>{audio?.name}</Text>
             <Text style={[styles.status, { color: theme.textSecondary }]}>
               {playbackLabel} • Volume {volume}%
             </Text>
@@ -60,7 +81,9 @@ export default function App() {
 
           <View style={[styles.heroCard, { backgroundColor: theme.backgroundSelected }]}
             accessibilityLabel="Album or podcast card slot"
-          />
+          >
+            <AudioInformationBoard audio={audio} loading={loading} theme={theme} />
+          </View>
         </View>
       </View>
 
@@ -166,6 +189,13 @@ const styles = StyleSheet.create({
   headerRow: {
     gap: Spacing.one,
   },
+  typeTag: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
   title: {
     fontSize: 24,
     fontWeight: '700',
@@ -178,8 +208,9 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     width: '100%',
-    height: 220,
+    height: 320,
     borderRadius: 28,
+    overflow: 'hidden',
   },
   progressDock: {
     position: 'absolute',

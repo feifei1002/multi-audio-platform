@@ -42,6 +42,13 @@ public class AudioController {
         return audioService.getAllAudio();
     }
 
+    @GetMapping("/audio/{id}")
+    public ResponseEntity<Audio> getAudioById(@PathVariable Long id) {
+        return audioService.getAudioById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @GetMapping("/audio/type/{type}")
     public List<Audio> getAudioByType(@PathVariable AudioType type) {
         return audioService.getAudioByType(type);
