@@ -1,1 +1,1 @@
-export const CARDS = ['AUDIO_PLAYER', 'PROFILE'];
+export const CARDS = ['AUDIO_PLAYER', 'PLAYLIST', 'PROFILE'];
