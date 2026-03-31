@@ -2,14 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   PanResponder,
-  Pressable,
-  StyleSheet,
   Text,
   View,
   ViewStyle,
 } from 'react-native';
 
-import { Spacing } from '@/constants/theme';
+import { CornerButton } from '@/components/CornerButton';
+import { playToggleButtonStyles } from '@/styles/playToggleButton';
 
 type PlayToggleButtonProps = {
   isPlaying: boolean;
@@ -243,86 +242,33 @@ export function PlayToggleButton({
   };
 
   return (
-    <View style={[styles.container, style]} {...panResponder.panHandlers}>
+    <View style={[playToggleButtonStyles.container, style]} {...panResponder.panHandlers}>
       {isVolumeBarVisible ? (
-        <View style={[styles.miniTrackVertical, { backgroundColor }]}>
-          <View style={[styles.miniFillVertical, { height: `${volume}%`, backgroundColor: textColor }]} />
+        <View style={[playToggleButtonStyles.miniTrackVertical, { backgroundColor }]}>
+          <View style={[playToggleButtonStyles.miniFillVertical, { height: `${volume}%`, backgroundColor: textColor }]} />
         </View>
       ) : null}
 
-      <Animated.View style={[styles.joystick, { transform: [{ translateX: stickX }, { translateY: stickY }] }]}>
-        <Pressable
-          style={[styles.button, { backgroundColor }]}
+      <Animated.View style={[playToggleButtonStyles.joystick, { transform: [{ translateX: stickX }, { translateY: stickY }] }]}>
+        <CornerButton
+          label={label}
           accessibilityLabel={accessibilityLabel ?? `${label} toggle button`}
-          accessibilityRole="button"
+          backgroundColor={backgroundColor}
+          textColor={textColor}
           onPress={handlePress}
           onLongPress={handleLongPress}
           onTouchEnd={handleTouchEnd}
           onTouchCancel={handleTouchEnd}
           delayLongPress={220}
-        >
-          <Text selectable={false} style={[styles.label, { color: textColor }]}>{label}</Text>
-        </Pressable>
+        />
       </Animated.View>
 
       {trackHint ? (
-        <View style={styles.trackHintWrap}>
-          <Text selectable={false} style={[styles.trackHintText, { color: textColor }]}>{trackHint}</Text>
+        <View style={playToggleButtonStyles.trackHintWrap}>
+          <Text selectable={false} style={[playToggleButtonStyles.trackHintText, { color: textColor }]}>{trackHint}</Text>
         </View>
       ) : null}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    width: 64,
-    height: 64,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  joystick: {
-    position: 'absolute',
-  },
-  miniTrackVertical: {
-    position: 'absolute',
-    left: -Spacing.three,
-    width: 6,
-    height: 64,
-    borderRadius: 999,
-    overflow: 'hidden',
-    justifyContent: 'flex-end',
-    opacity: 0.9,
-  },
-  miniFillVertical: {
-    width: '100%',
-    borderRadius: 999,
-  },
-  trackHintWrap: {
-    position: 'absolute',
-    top: 74,
-    minWidth: 150,
-    alignItems: 'center',
-  },
-  trackHintText: {
-    fontSize: 10,
-    textAlign: 'center',
-  },
-  button: {
-    width: 64,
-    height: 64,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#0B1824',
-    shadowOpacity: 0.18,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-  },
-  label: {
-    fontSize: 12,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-  },
-});
