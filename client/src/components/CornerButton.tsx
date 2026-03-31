@@ -1,6 +1,6 @@
 import { Pressable, Text, ViewStyle } from 'react-native';
 
-import { cornerButtonStyles } from '@/types/cornerButton';
+import { cornerButtonStyles } from '@/styles/cornerButton';
 
 type CornerButtonProps = {
   label: string;
@@ -11,6 +11,7 @@ type CornerButtonProps = {
   onLongPress?: () => void;
   onTouchEnd?: () => void;
   onTouchCancel?: () => void;
+  delayLongPress?: number;
   style?: ViewStyle;
 };
 
@@ -25,6 +26,7 @@ export function CornerButton({
   onLongPress,
   onTouchEnd,
   onTouchCancel,
+  delayLongPress = 240,
   style,
 }: CornerButtonProps) {
   return (
@@ -36,7 +38,7 @@ export function CornerButton({
       onLongPress={onLongPress}
       onTouchEnd={onTouchEnd}
       onTouchCancel={onTouchCancel}
-      delayLongPress={240}
+      delayLongPress={delayLongPress}
     >
       <Text selectable={false} style={[cornerButtonStyles.label, { color: textColor }]}>{label}</Text>
     </Pressable>

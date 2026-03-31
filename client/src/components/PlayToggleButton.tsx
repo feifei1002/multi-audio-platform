@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 
 import { CornerButton } from '@/components/CornerButton';
-import { playToggleButtonStyles } from '@/types/playToggleButton';
+import { playToggleButtonStyles } from '@/styles/playToggleButton';
 
 type PlayToggleButtonProps = {
   isPlaying: boolean;
@@ -259,6 +259,7 @@ export function PlayToggleButton({
           onLongPress={handleLongPress}
           onTouchEnd={handleTouchEnd}
           onTouchCancel={handleTouchEnd}
+          delayLongPress={220}
         />
       </Animated.View>
 

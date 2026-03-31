@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
 
-import { indexStyles } from '@/types';
+import { indexStyles } from '@/styles/indexScreen';
 import { ContentsSwitchButton } from '@/components/ContentsSwitchButton';
 import { PlayToggleButton } from '@/components/PlayToggleButton';
 import { SettingsButton } from '@/components/SettingsButton';
