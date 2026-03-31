@@ -22,7 +22,7 @@ export default function App() {
   const [activeCardIndex, setActiveCardIndex] = useState<number>(1);
 
   useEffect (() => {
-    const userId = 1;
+    const userId = 5;
     fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/navigation/${userId}`)
       .then(response => {
         if (!response.ok) throw new Error("No saved state found");
@@ -57,7 +57,7 @@ export default function App() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        userId: 1,
+        userId: 5,
         cardIdentifier: cardIdentifier,
       }),
     });
@@ -116,6 +116,7 @@ const swipeHandlers = useCardSwipe({
           <View style={[indexStyles.glassHighlight, { backgroundColor: theme.backgroundElement }]} />
         </View>
         <View {...swipeHandlers} style={{ flex: 1 }}>
+        
         {/* CARD 1: PROFILE */}
         {CARDS[activeCardIndex] === 'PROFILE' && (
         <View
@@ -151,6 +152,22 @@ const swipeHandlers = useCardSwipe({
             accessibilityLabel="Album or podcast card slot"
           >
           <AudioInformationBoard audio={audio} loading={loading} theme={theme} />
+          </View>
+        </View>
+        )}
+
+
+        {/* CARD 3: PLAYLIST */}
+        {CARDS[activeCardIndex] === 'PLAYLIST' && (
+        <View
+          style={[indexStyles.glassCard, indexStyles.mainCard, { borderColor: theme.backgroundSelected }]}
+          accessibilityLabel="Playlist panel"
+        >
+          <View style={indexStyles.headerRow}>
+            <Text style={[indexStyles.title, { color: theme.text }]}>Playlist</Text>
+          </View>
+          <View style={[indexStyles.heroCard, { justifyContent: 'center', alignItems: 'center' }]}>
+            <Text style={{color: theme.textSecondary}}>User Playlist Here</Text>
           </View>
         </View>
         )}
