@@ -1,6 +1,6 @@
-import { Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
+import { Pressable, Text, ViewStyle } from 'react-native';
 
-import { Spacing } from '@/constants/theme';
+import { cornerButtonStyles } from '@/types/cornerButton';
 
 type CornerButtonProps = {
   label: string;
@@ -9,6 +9,8 @@ type CornerButtonProps = {
   textColor: string;
   onPress?: () => void;
   onLongPress?: () => void;
+  onTouchEnd?: () => void;
+  onTouchCancel?: () => void;
   style?: ViewStyle;
 };
 
@@ -21,38 +23,22 @@ export function CornerButton({
   textColor,
   onPress,
   onLongPress,
+  onTouchEnd,
+  onTouchCancel,
   style,
 }: CornerButtonProps) {
   return (
     <Pressable
-      style={[styles.base, { backgroundColor }, style]}
+      style={[cornerButtonStyles.base, { backgroundColor }, style]}
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
       onPress={onPress ?? noop}
       onLongPress={onLongPress}
+      onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchCancel}
       delayLongPress={240}
     >
-      <Text selectable={false} style={[styles.label, { color: textColor }]}>{label}</Text>
+      <Text selectable={false} style={[cornerButtonStyles.label, { color: textColor }]}>{label}</Text>
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  base: {
-    position: 'absolute',
-    width: 64,
-    height: 64,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#0B1824',
-    shadowOpacity: 0.18,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-  },
-  label: {
-    fontSize: 12,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-  },
-});
