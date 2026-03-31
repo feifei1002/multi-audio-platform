@@ -1,0 +1,1 @@
+export const CARDS = ['AUDIO_PLAYER', 'PROFILE'];
