@@ -17,7 +17,7 @@ export const indexStyles = StyleSheet.create({
     top: '-10%',
     left: '-10%',
     borderRadius: 320,
-    backgroundColor: '#2D4B6A',
+    backgroundColor: '#b9ccdffa',
     opacity: 0.25,
   },
   gradientLayerTwo: {
