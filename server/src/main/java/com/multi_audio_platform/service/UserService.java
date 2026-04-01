@@ -34,15 +34,15 @@ public class UserService {
             request.getLastName() == null || request.getLastName().isBlank() ||
             request.getDateOfBirth() == null || request.getDateOfBirth().isBlank() ||
             request.getEmail() == null || request.getEmail().isBlank()) {
-            return new RegisterResponse(false, "Please fill in all fields.");
+            return new RegisterResponse(false, "Please fill in all fields.", null);
         }
 
         if (!request.getEmail().contains("@")) {
-            return new RegisterResponse(false, "Please enter a valid email address.");
+            return new RegisterResponse(false, "Please enter a valid email address.", null);
         }
 
         if (userRepository.existsByEmail(request.getEmail().toLowerCase().trim())) {
-            return new RegisterResponse(false, "An account with this email already exists.");
+            return new RegisterResponse(false, "An account with this email already exists.", null);
         }
 
         // Parse date of birth
@@ -52,7 +52,7 @@ public class UserService {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
             dob = LocalDate.parse(cleaned, formatter);
         } catch (DateTimeParseException e) {
-            return new RegisterResponse(false, "Invalid date format. Use DD/MM/YYYY.");
+            return new RegisterResponse(false, "Invalid date format. Use DD/MM/YYYY.", null);
         }
 
         // Generate verification token
@@ -77,37 +77,37 @@ public class UserService {
             // User is saved, but email failed — still return success
             // so user can request resend later if needed
             return new RegisterResponse(true,
-                "Account created but we couldn't send the activation email. Please contact support.");
+                "Account created but we couldn't send the activation email. Please contact support.", null);
         }
 
         return new RegisterResponse(true,
-            "Account created! Please check your email to activate your account.");
+            "Account created! Please check your email to activate your account.", null);
     }
 
     // ─── Verify Email ─────────────────────────────────────────────────────────
 
     public RegisterResponse verifyEmail(String token) {
         if (token == null || token.isBlank()) {
-            return new RegisterResponse(false, "Invalid verification link.");
+            return new RegisterResponse(false, "Invalid verification link.", null);
         }
 
         Optional<User> optionalUser = userRepository.findByVerificationToken(token);
 
         if (optionalUser.isEmpty()) {
-            return new RegisterResponse(false, "Verification link is invalid or already used.");
+            return new RegisterResponse(false, "Verification link is invalid or already used.", null);
         }
 
         User user = optionalUser.get();
 
         if (Boolean.TRUE.equals(user.getVerified())) {
-            return new RegisterResponse(true, "Your account is already verified. You can sign in.");
+            return new RegisterResponse(true, "Your account is already verified. You can sign in.", user.getId());
         }
 
         user.setVerified(true);
         user.setVerificationToken(null); // clear token after use
         userRepository.save(user);
 
-        return new RegisterResponse(true, "Account verified successfully! You can now sign in.");
+        return new RegisterResponse(true, "Account verified successfully! You can now sign in.", user.getId());
     }
 
     // ─── Send Activation Email ────────────────────────────────────────────────

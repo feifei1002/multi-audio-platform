@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 
 import { indexStyles } from '@/styles/indexScreen';
 import { ContentsSwitchButton } from '@/components/ContentsSwitchButton';
@@ -10,6 +11,7 @@ import { AudioInformationBoard } from '@/components/AudioInformationBoard';
 import { AudioData } from '@/types/audio';
 import { CARDS } from '@/types/cards';
 import { useCardSwipe } from '@/hooks/use-card-swipe';
+import { getUserSession } from '@/utils/storage';
 
 export default function App() {
   const theme = useTheme();
@@ -20,24 +22,43 @@ export default function App() {
   const [audioId, setAudioId] = useState<number>(1);
   const [loading, setLoading] = useState(true);
   const [activeCardIndex, setActiveCardIndex] = useState<number>(1);
+  const [userId, setUserId] = useState<number | null>(null);
 
   useEffect (() => {
-    const userId = 5;
+    async function loadUser() {
+      try {
+        const savedUserId = await getUserSession('userId');
+        if(savedUserId) {
+          setUserId(Number(savedUserId))
+        }
+      } catch (error) {
+        console.error("Error loading user session:", error);
+      }
+    }
+    loadUser();
+  }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+
     fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/navigation/${userId}`)
       .then(response => {
-        if (!response.ok) throw new Error("No saved state found");
-        return response.json();
+        if(response.status === 204 || !response.ok) {
+          saveNavigationState(CARDS[activeCardIndex]);
+        } else {
+          return response.json();
+        }
       })
       .then(data => {
-        if (data && data.cardIdentifier) {
+        if (data?.cardIdentifier) {
           const index = CARDS.indexOf(data.cardIdentifier);
           if (index !== -1) {
             setActiveCardIndex(index);
           }
         }
       })
-      .catch(err => console.log("Starting fresh: No previous card state found."));
-  }, []);
+      .catch(err => console.log("New user: Initializing state..."));
+  }, [userId]);
 
   const handleCardNavigation = (direction: 'next' | 'previous') => {
   setActiveCardIndex((prev) => {
@@ -52,12 +73,13 @@ export default function App() {
   }, [activeCardIndex]);
 
   const saveNavigationState = async (cardIdentifier: string) => {
+    if (!userId) return;
   try {
     await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/navigation/update`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        userId: 5,
+        userId: userId,
         cardIdentifier: cardIdentifier,
       }),
     });

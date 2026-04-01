@@ -1,13 +1,15 @@
 package com.multi_audio_platform.dto;
 
+import com.multi_audio_platform.model.CardType;
+
 public class NavigationUpdateDTO {
     private Long userId;
-    private String cardIdentifier;
+    private CardType cardIdentifier;
 
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
 
-    public String getCardIdentifier() { return cardIdentifier; }
-    public void setCardIdentifier(String cardIdentifier) { this.cardIdentifier = cardIdentifier; }
+    public CardType getCardIdentifier() { return cardIdentifier; }
+    public void setCardIdentifier(CardType cardIdentifier) { this.cardIdentifier = cardIdentifier; }
     
 }

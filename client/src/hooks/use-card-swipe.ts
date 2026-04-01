@@ -15,10 +15,8 @@ export function useCardSwipe({ onSwipeLeft, onSwipeRight, threshold = 50 }: Swip
             },
             onPanResponderRelease: (_, gestureState) => {
                 if (gestureState.dx > threshold) {
-                    console.log("Triggering: Swipe Right (Previous)");
                     onSwipeRight();
                 } else if (gestureState.dx < -threshold) {
-                    console.log("Triggering: Swipe Left (Next)");
                     onSwipeLeft();
                 }
             },
