@@ -37,6 +37,10 @@ public class User {
     @Builder.Default
     private Boolean verified = false;
 
+    @Column(name = "linked")
+    @Builder.Default
+    private Boolean linked = false;
+
     @Column(name = "verification_token")
     private String verificationToken;
 
