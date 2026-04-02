@@ -77,11 +77,11 @@ public class UserService {
             // User is saved, but email failed — still return success
             // so user can request resend later if needed
             return new RegisterResponse(true,
-                "Account created but we couldn't send the activation email. Please contact support.", null);
+                "Account created but we couldn't send the activation email. Please contact support.", user.getId());
         }
 
         return new RegisterResponse(true,
-            "Account created! Please check your email to activate your account.", null);
+            "Account created! Please check your email to activate your account.", user.getId());
     }
 
     // ─── Verify Email ─────────────────────────────────────────────────────────

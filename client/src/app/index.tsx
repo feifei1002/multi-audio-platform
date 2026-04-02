@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { View, Text } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
 
 import { indexStyles } from '@/styles/indexScreen';
 import { ContentsSwitchButton } from '@/components/ContentsSwitchButton';
@@ -52,11 +51,14 @@ export default function App() {
 
     fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/navigation/${userId}`)
       .then(response => {
-        if(response.status === 204 || !response.ok) {
+        if(response.status === 404) {
+          console.log("New user detected. Initializing navigation state...");
           saveNavigationState(CARDS[activeCardIndex]);
-        } else {
+          return null;
+        } if (response.ok) {
           return response.json();
         }
+        throw new Error("Failed to fetch navigation state" + response.status);
       })
       .then(data => {
         if (data?.cardIdentifier) {

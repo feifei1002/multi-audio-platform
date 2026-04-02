@@ -26,14 +26,10 @@ public class NavigationStateController {
 
     @PostMapping("/update")
     public ResponseEntity<?> updateState (@RequestBody NavigationUpdateDTO updateDTO) {
-        try {
-            NavigationState savedState = navigationStateService.saveState(
-                updateDTO.getUserId(),
-                updateDTO.getCardIdentifier());
-            return ResponseEntity.ok(savedState);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Failed to save navigation state: " + e.getMessage());
-        }
+        NavigationState savedState = navigationStateService.saveState(
+            updateDTO.getUserId(),
+            updateDTO.getCardIdentifier());
+        return ResponseEntity.ok(savedState);
     }
 
     @GetMapping("/{userId}")

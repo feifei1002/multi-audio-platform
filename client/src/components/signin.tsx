@@ -9,7 +9,6 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
 import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';
 import { saveUserSession } from '@/utils/storage';
@@ -37,7 +36,7 @@ async function sendOtp(email: string): Promise<{ success: boolean; message: stri
   }
 }
 
-async function verifyOtp(email: string, otp: string): Promise<{ success: boolean; message: string; userId?: string }> {
+async function verifyOtp(email: string, otp: string): Promise<{ success: boolean; message: string; userId?: number }> {
   try {
     const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/verify-otp`, {
       method: 'POST',
