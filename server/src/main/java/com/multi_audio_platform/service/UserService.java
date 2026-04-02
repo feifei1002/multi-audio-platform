@@ -129,4 +129,9 @@ public class UserService {
         );
         mailSender.send(message);
     }
+
+    // ─── Get User By ID ──────────────────────────────────────────────────────
+    public Optional<User> getUserById(Long id) {
+        return userRepository.findById(id);
+    }
 }

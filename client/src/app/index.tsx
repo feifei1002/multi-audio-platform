@@ -12,6 +12,7 @@ import { AudioData } from '@/types/audio';
 import { CARDS } from '@/types/cards';
 import { useCardSwipe } from '@/hooks/use-card-swipe';
 import { getUserSession } from '@/utils/storage';
+import { UserProfile } from '@/types/user';
 
 export default function App() {
   const theme = useTheme();
@@ -23,6 +24,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [activeCardIndex, setActiveCardIndex] = useState<number>(1);
   const [userId, setUserId] = useState<number | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   useEffect (() => {
     async function loadUser() {
@@ -40,6 +42,13 @@ export default function App() {
 
   useEffect(() => {
     if (!userId) return;
+
+    fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/users/${userId}`)
+      .then(response => response.json())
+      .then((data: UserProfile) => {
+        setUserProfile(data);
+      }).catch(err => console.log("Failed to load user profile:", err));
+
 
     fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/navigation/${userId}`)
       .then(response => {
@@ -149,7 +158,17 @@ const swipeHandlers = useCardSwipe({
             <Text style={[indexStyles.title, { color: theme.text }]}>Profile</Text>
           </View>
           <View style={[indexStyles.heroCard, { justifyContent: 'center', alignItems: 'center' }]}>
-            <Text style={{color: theme.textSecondary}}>User Profile Here</Text>
+            <Text style={{color: theme.textSecondary}}>
+              {userProfile 
+              ? `${userProfile.firstName} ${userProfile.lastName}` 
+              : 'Loading Profile...'}
+            </Text>
+
+              {userProfile && (
+                <Text style={{ color: theme.textSecondary, marginTop: 4 }}>
+                {userProfile.dateOfBirth}
+                </Text>
+              )}
           </View>
         </View>
         )}

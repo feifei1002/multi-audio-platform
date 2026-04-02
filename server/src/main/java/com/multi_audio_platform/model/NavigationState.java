@@ -1,6 +1,9 @@
 package com.multi_audio_platform.model;
 
 import java.time.LocalDateTime;
+
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -28,6 +31,7 @@ public class NavigationState {
     @OneToOne
     @MapsId
     @JoinColumn(name = "user_id")
+    @JsonBackReference
     private User user;
 
     @Enumerated(EnumType.STRING)
