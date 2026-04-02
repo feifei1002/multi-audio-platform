@@ -218,7 +218,7 @@ export default function SignUpScreen({ onNavigateToSignIn }: SignUpScreenProps) 
   const setField = (field: keyof SignUpForm) => (value: string) =>
     setForm(prev => ({ ...prev, [field]: value }));
 
-  // ── Step 1: Submit form ───────────────────────────────────────────────────
+  // ── Submit form ───────────────────────────────────────────────────
 
   const handleRegister = async () => {
     const { firstName, lastName, dateOfBirth, email } = form;
@@ -239,7 +239,7 @@ export default function SignUpScreen({ onNavigateToSignIn }: SignUpScreenProps) 
     }
   };
 
-  // ── Step 2: Verify OTP ────────────────────────────────────────────────────
+  // ── Verify OTP ────────────────────────────────────────────────────
 
   const handleVerifyOtp = async () => {
     if (otp.length < 6) {
@@ -292,13 +292,12 @@ export default function SignUpScreen({ onNavigateToSignIn }: SignUpScreenProps) 
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.eyebrow, { color: labelColor }]}>GLASS PLAYER</Text>
           <Text style={[styles.title, { color: theme.text }]}>
             {step === 'form' ? 'Create Account' : 'Verify Email'}
           </Text>
           <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
             {step === 'form'
-              ? 'Join to start listening'
+              ? 'Join to enjoy!'
               : `Enter the 6-digit code sent to ${form.email}`}
           </Text>
         </View>
@@ -310,13 +309,13 @@ export default function SignUpScreen({ onNavigateToSignIn }: SignUpScreenProps) 
               <View style={styles.formGrid}>
                 <GlassInput
                   label="First Name" value={form.firstName}
-                  onChangeText={setField('firstName')} placeholder="Ada"
+                  onChangeText={setField('firstName')} placeholder=""
                   borderColor={theme.backgroundSelected} textColor={theme.text}
                   placeholderColor={placeholderColor} labelColor={labelColor}
                 />
                 <GlassInput
                   label="Last Name" value={form.lastName}
-                  onChangeText={setField('lastName')} placeholder="Lovelace"
+                  onChangeText={setField('lastName')} placeholder=""
                   borderColor={theme.backgroundSelected} textColor={theme.text}
                   placeholderColor={placeholderColor} labelColor={labelColor}
                 />
@@ -329,7 +328,7 @@ export default function SignUpScreen({ onNavigateToSignIn }: SignUpScreenProps) 
                 />
                 <GlassInput
                   label="Email" value={form.email}
-                  onChangeText={setField('email')} placeholder="ada@lovelace.io"
+                  onChangeText={setField('email')} placeholder="example@gmail.com"
                   keyboardType="email-address"
                   borderColor={theme.backgroundSelected} textColor={theme.text}
                   placeholderColor={placeholderColor} labelColor={labelColor}
@@ -430,7 +429,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center', gap: Spacing.five,
   },
   header: {
-    gap: Spacing.one, maxWidth: 400,
+    gap: Spacing.one, maxWidth: 600,
     width: '100%', alignSelf: 'center',
   },
   eyebrow: { fontSize: 10, fontWeight: '700', letterSpacing: 2 },
@@ -442,7 +441,7 @@ const styles = StyleSheet.create({
     padding: Spacing.five, gap: Spacing.four,
     shadowColor: '#0B1824', shadowOpacity: 0.18,
     shadowRadius: 24, shadowOffset: { width: 0, height: 12 },
-    maxWidth: 400, width: '100%', alignSelf: 'center',
+    maxWidth: 600, width: '100%', alignSelf: 'center',
   },
   formGrid: { gap: Spacing.three },
   otpSection: { gap: Spacing.two },

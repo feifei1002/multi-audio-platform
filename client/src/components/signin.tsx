@@ -140,7 +140,6 @@ export default function SignInScreen({ onNavigateToSignUp }: SignInScreenProps) 
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.eyebrow, { color: labelColor }]}>GLASS PLAYER</Text>
           <Text style={[styles.title, { color: theme.text }]}>Welcome Back</Text>
           <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
             Sign in with your email
@@ -153,7 +152,7 @@ export default function SignInScreen({ onNavigateToSignUp }: SignInScreenProps) 
             label="Email"
             value={email}
             onChangeText={setEmail}
-            placeholder="ada@lovelace.io"
+            placeholder="example@gmail.com"
             borderColor={theme.backgroundSelected}
             textColor={theme.text}
             placeholderColor={placeholderColor}
@@ -209,7 +208,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center', gap: Spacing.five,
   },
   header: {
-    gap: Spacing.one, maxWidth: 400,
+    gap: Spacing.one, maxWidth: 600,
     width: '100%', alignSelf: 'center',
   },
   eyebrow: { fontSize: 10, fontWeight: '700', letterSpacing: 2 },
@@ -221,7 +220,7 @@ const styles = StyleSheet.create({
     padding: Spacing.five, gap: Spacing.four,
     shadowColor: '#0B1824', shadowOpacity: 0.18,
     shadowRadius: 24, shadowOffset: { width: 0, height: 12 },
-    maxWidth: 400, width: '100%', alignSelf: 'center',
+    maxWidth: 600, width: '100%', alignSelf: 'center',
   },
   statusText: { fontSize: 12, textAlign: 'center' },
   ctaButton: {

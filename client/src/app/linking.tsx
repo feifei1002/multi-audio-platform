@@ -50,11 +50,10 @@ export default function LinkingPage({ onServiceSelect }: LinkingPageProps) {
       style={[indexStyles.screen, { backgroundColor: theme.background }]}
       accessibilityLabel="Service linking screen"
     >
-      {/* Gradient layers — identical to index page */}
+      {/* Gradient layers*/}
       <View style={indexStyles.gradientLayerOne} />
       <View style={indexStyles.gradientLayerTwo} />
 
-      {/* Stacked glass card — identical structure to index page */}
       <View style={indexStyles.stack}>
         {/* Main card */}
         <View

@@ -23,7 +23,6 @@ public class OtpService {
 
     // Separate OTP stores for sign-up and sign-in
     private final Map<String, OtpEntry> signUpOtpStore = new ConcurrentHashMap<>();
-    private final Map<String, OtpEntry> signInOtpStore = new ConcurrentHashMap<>();
 
     private static final int OTP_EXPIRY_MINUTES = 5;
 
@@ -52,13 +51,13 @@ public class OtpService {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(email);
-            message.setSubject("Activate your Glass Player account");
+            message.setSubject("Activate your Multi-Audio Platform account");
             message.setText(
                 "Hi " + user.getFirstName() + ",\n\n" +
                 "Your account activation code is: " + otp + "\n\n" +
                 "This code expires in " + OTP_EXPIRY_MINUTES + " minutes.\n\n" +
                 "If you didn't create an account, you can safely ignore this email.\n\n" +
-                "— The Glass Player Team"
+                "— The Multi-Audio Platform Team"
             );
             mailSender.send(message);
         } catch (Exception e) {
@@ -104,78 +103,6 @@ public class OtpService {
 
         signUpOtpStore.remove(key);
         return new RegisterResponse(true, "Account activated successfully!");
-    }
-
-    // ─── Send Sign In OTP (only for verified users) ───────────────────────────
-
-    public RegisterResponse sendOtp(String email) {
-        if (email == null || email.isBlank()) {
-            return new RegisterResponse(false, "Please enter your email.");
-        }
-
-        if (!email.contains("@")) {
-            return new RegisterResponse(false, "Please enter a valid email address.");
-        }
-
-        Optional<User> optionalUser = userRepository.findByEmail(email.toLowerCase().trim());
-        if (optionalUser.isEmpty()) {
-            return new RegisterResponse(false, "No account found with this email.");
-        }
-
-        User user = optionalUser.get();
-        if (!Boolean.TRUE.equals(user.getVerified())) {
-            return new RegisterResponse(false,
-                "Please verify your email first. Check your inbox for the activation code.");
-        }
-
-        String otp = generateOtp();
-        LocalDateTime expiry = LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES);
-        signInOtpStore.put(email.toLowerCase().trim(), new OtpEntry(otp, expiry));
-
-        try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(email);
-            message.setSubject("Your Glass Player Sign-In Code");
-            message.setText(
-                "Hi " + user.getFirstName() + ",\n\n" +
-                "Your one-time sign-in code is: " + otp + "\n\n" +
-                "This code expires in " + OTP_EXPIRY_MINUTES + " minutes.\n\n" +
-                "If you didn't request this, please ignore this email.\n\n" +
-                "— The Glass Player Team"
-            );
-            mailSender.send(message);
-        } catch (Exception e) {
-            return new RegisterResponse(false, "Failed to send OTP. Please try again.");
-        }
-
-        return new RegisterResponse(true, "OTP sent to " + email);
-    }
-
-    // ─── Verify Sign In OTP ───────────────────────────────────────────────────
-
-    public RegisterResponse verifyOtp(String email, String otp) {
-        if (email == null || otp == null) {
-            return new RegisterResponse(false, "Invalid request.");
-        }
-
-        String key = email.toLowerCase().trim();
-        OtpEntry entry = signInOtpStore.get(key);
-
-        if (entry == null) {
-            return new RegisterResponse(false, "No OTP was sent to this email.");
-        }
-
-        if (LocalDateTime.now().isAfter(entry.expiry())) {
-            signInOtpStore.remove(key);
-            return new RegisterResponse(false, "OTP has expired. Please request a new one.");
-        }
-
-        if (!entry.otp().equals(otp.trim())) {
-            return new RegisterResponse(false, "Incorrect OTP. Please try again.");
-        }
-
-        signInOtpStore.remove(key);
-        return new RegisterResponse(true, "Signed in successfully!");
     }
 
     // ─── Helper ───────────────────────────────────────────────────────────────
