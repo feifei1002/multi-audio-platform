@@ -1,6 +1,8 @@
 package com.multi_audio_platform.service;
 
 import com.multi_audio_platform.dto.RegisterResponse;
+import com.multi_audio_platform.model.CardType;
+import com.multi_audio_platform.model.NavigationState;
 import com.multi_audio_platform.model.User;
 import com.multi_audio_platform.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,24 +32,24 @@ public class OtpService {
 
     public RegisterResponse sendOtp(String email) {
         if (email == null || email.isBlank()) {
-            return new RegisterResponse(false, "Please enter your email.");
+            return new RegisterResponse(false, "Please enter your email.", null);
         }
 
         if (!email.contains("@")) {
-            return new RegisterResponse(false, "Please enter a valid email address.");
+            return new RegisterResponse(false, "Please enter a valid email address.", null);
         }
 
         // Check if user exists
         Optional<User> optionalUser = userRepository.findByEmail(email.toLowerCase().trim());
         if (optionalUser.isEmpty()) {
-            return new RegisterResponse(false, "No account found with this email.");
+            return new RegisterResponse(false, "No account found with this email.", null);
         }
 
         // Block unverified users
         User user = optionalUser.get();
         if (!Boolean.TRUE.equals(user.getVerified())) {
             return new RegisterResponse(false,
-                "Please verify your email first. Check your inbox for the activation link.");
+                "Please verify your email first. Check your inbox for the activation link.", null);
         }
 
         // Generate 6-digit OTP
@@ -69,38 +71,51 @@ public class OtpService {
             );
             mailSender.send(message);
         } catch (Exception e) {
-            return new RegisterResponse(false, "Failed to send OTP. Please try again.");
+            return new RegisterResponse(false, "Failed to send OTP. Please try again.", null);
         }
 
-        return new RegisterResponse(true, "OTP sent to " + email);
+        return new RegisterResponse(true, "OTP sent to " + email, null);
     }
 
     // ─── Verify OTP ──────────────────────────────────────────────────────────
 
     public RegisterResponse verifyOtp(String email, String otp) {
         if (email == null || otp == null) {
-            return new RegisterResponse(false, "Invalid request.");
+            return new RegisterResponse(false, "Invalid request.", null);
         }
 
         String key = email.toLowerCase().trim();
         OtpEntry entry = otpStore.get(key);
 
         if (entry == null) {
-            return new RegisterResponse(false, "No OTP was sent to this email.");
+            return new RegisterResponse(false, "No OTP was sent to this email.", null);
         }
 
         if (LocalDateTime.now().isAfter(entry.expiry())) {
             otpStore.remove(key);
-            return new RegisterResponse(false, "OTP has expired. Please request a new one.");
+            return new RegisterResponse(false, "OTP has expired. Please request a new one.", null);
         }
 
         if (!entry.otp().equals(otp.trim())) {
-            return new RegisterResponse(false, "Incorrect OTP. Please try again.");
+            return new RegisterResponse(false, "Incorrect OTP. Please try again.", null);
+        }
+
+        User user = userRepository.findByEmail(email.toLowerCase().trim())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.getNavigationState() == null) {
+            NavigationState initialState = NavigationState.builder()
+                    .user(user)
+                    .cardIdentifier(CardType.PROFILE)
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            user.setNavigationState(initialState);
+            userRepository.save(user);
         }
 
         // Valid — remove so it can't be reused
         otpStore.remove(key);
-        return new RegisterResponse(true, "Signed in successfully!");
+        return new RegisterResponse(true, "Signed in successfully!", user.getId());
     }
 
     // ─── OTP Entry record ────────────────────────────────────────────────────

@@ -11,6 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';
+import { saveUserSession } from '@/utils/storage';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -35,16 +36,17 @@ async function sendOtp(email: string): Promise<{ success: boolean; message: stri
   }
 }
 
-async function verifyOtp(email: string, otp: string): Promise<{ success: boolean; message: string }> {
+async function verifyOtp(email: string, otp: string): Promise<{ success: boolean; message: string; userId?: number }> {
   try {
     const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/verify-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, otp }),
     });
-    return await response.json();
+    const data = await response.json();
+    return { success: data.success, message: data.message, userId: data.userId };
   } catch {
-    return { success: false, message: 'Could not reach the server. Please try again.' };
+    return { success: false, message: 'Could not reach the server. Please try again.'};
   }
 }
 
@@ -264,7 +266,8 @@ export default function SignInScreen({ onNavigateToSignUp }: SignInScreenProps) 
     setLoading(false);
     setIsError(!result.success);
     setStatusMessage(result.message);
-    if (result.success) {
+    if (result.success && result.userId) {
+      await saveUserSession('userId', String(result.userId));
       // Redirect to index page
       router.replace('/');
     }
