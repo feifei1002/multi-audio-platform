@@ -256,7 +256,7 @@ export default function SignUpScreen({ onNavigateToSignIn }: SignUpScreenProps) 
     setStatusMessage(result.message);
     if (result.success) {
       // Redirect to linking page
-      router.replace('/linking');
+      router.replace('/linking' as any);
     }
   };
 
