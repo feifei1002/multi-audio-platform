@@ -23,14 +23,13 @@ public class OtpService {
     private final UserRepository userRepository;
     private final JavaMailSender mailSender;
 
-    // In-memory OTP store: email -> OtpEntry
-    private final Map<String, OtpEntry> otpStore = new ConcurrentHashMap<>();
+    private final Map<String, OtpEntry> signUpOtpStore = new ConcurrentHashMap<>();
 
     private static final int OTP_EXPIRY_MINUTES = 5;
 
-    // ─── Send OTP ────────────────────────────────────────────────────────────
+    // ─── Send Sign Up OTP (for unverified users) ──────────────────────────────
 
-    public RegisterResponse sendOtp(String email) {
+    public RegisterResponse sendSignUpOtp(String email) {
         if (email == null || email.isBlank()) {
             return new RegisterResponse(false, "Please enter your email.", null);
         }
@@ -39,70 +38,75 @@ public class OtpService {
             return new RegisterResponse(false, "Please enter a valid email address.", null);
         }
 
-        // Check if user exists
         Optional<User> optionalUser = userRepository.findByEmail(email.toLowerCase().trim());
         if (optionalUser.isEmpty()) {
             return new RegisterResponse(false, "No account found with this email.", null);
         }
 
-        // Block unverified users
         User user = optionalUser.get();
-        if (!Boolean.TRUE.equals(user.getVerified())) {
-            return new RegisterResponse(false,
-                "Please verify your email first. Check your inbox for the activation link.", null);
+
+        // Only send OTP to unverified users — this is for sign up activation
+        if (Boolean.TRUE.equals(user.getVerified())) {
+            return new RegisterResponse(false, "Account is already verified. Please sign in.", null);
         }
 
-        // Generate 6-digit OTP
-        String otp = String.format("%06d", new SecureRandom().nextInt(999999));
+        String otp = generateOtp();
         LocalDateTime expiry = LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES);
-        otpStore.put(email.toLowerCase().trim(), new OtpEntry(otp, expiry));
+        signUpOtpStore.put(email.toLowerCase().trim(), new OtpEntry(otp, expiry));
 
-        // Send OTP email
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(email);
-            message.setSubject("Your MultiAudio Player Sign-In Code");
+            message.setSubject("Activate your Multi-Audio Platform account");
             message.setText(
                 "Hi " + user.getFirstName() + ",\n\n" +
-                "Your one-time sign-in code is: " + otp + "\n\n" +
+                "Your account activation code is: " + otp + "\n\n" +
                 "This code expires in " + OTP_EXPIRY_MINUTES + " minutes.\n\n" +
-                "If you didn't request this, please ignore this email.\n\n" +
-                "— The MultiAudio Player Team"
+                "If you didn't create an account, you can safely ignore this email.\n\n" +
+                "— The Multi-Audio Platform Team"
             );
             mailSender.send(message);
         } catch (Exception e) {
             return new RegisterResponse(false, "Failed to send OTP. Please try again.", null);
         }
 
-        return new RegisterResponse(true, "OTP sent to " + email, null);
+        return new RegisterResponse(true, "Activation code sent to " + email, null);
     }
 
-    // ─── Verify OTP ──────────────────────────────────────────────────────────
+    // ─── Verify Sign Up OTP ───────────────────────────────────────────────────
 
-    public RegisterResponse verifyOtp(String email, String otp) {
+    public RegisterResponse verifySignUpOtp(String email, String otp) {
         if (email == null || otp == null) {
             return new RegisterResponse(false, "Invalid request.", null);
         }
 
         String key = email.toLowerCase().trim();
-        OtpEntry entry = otpStore.get(key);
+        OtpEntry entry = signUpOtpStore.get(key);
 
         if (entry == null) {
-            return new RegisterResponse(false, "No OTP was sent to this email.", null);
+            return new RegisterResponse(false, "No activation code was sent to this email.", null);
         }
 
         if (LocalDateTime.now().isAfter(entry.expiry())) {
-            otpStore.remove(key);
-            return new RegisterResponse(false, "OTP has expired. Please request a new one.", null);
+            signUpOtpStore.remove(key);
+            return new RegisterResponse(false, "Code has expired. Please request a new one.", null);
         }
 
         if (!entry.otp().equals(otp.trim())) {
-            return new RegisterResponse(false, "Incorrect OTP. Please try again.", null);
+            return new RegisterResponse(false, "Incorrect code. Please try again.", null);
         }
 
-        User user = userRepository.findByEmail(email.toLowerCase().trim())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        // Mark user as verified
+        Optional<User> optionalUser = userRepository.findByEmail(key);
+        if (optionalUser.isEmpty()) {
+            return new RegisterResponse(false, "Account not found. Please sign up again.", null);
+        }
+        User user = optionalUser.get();
 
+        user.setVerified(true);
+        user.setVerificationToken(null);
+
+        // Initialize default NavigationState on first verification (from her version)
         if (user.getNavigationState() == null) {
             NavigationState initialState = NavigationState.builder()
                     .user(user)
@@ -110,15 +114,19 @@ public class OtpService {
                     .timestamp(LocalDateTime.now())
                     .build();
             user.setNavigationState(initialState);
-            userRepository.save(user);
         }
 
-        // Valid — remove so it can't be reused
-        otpStore.remove(key);
-        return new RegisterResponse(true, "Signed in successfully!", user.getId());
+        userRepository.save(user);
+        signUpOtpStore.remove(key);
+
+        return new RegisterResponse(true, "Account activated successfully!", user.getId());
     }
 
-    // ─── OTP Entry record ────────────────────────────────────────────────────
+    // ─── Helper ───────────────────────────────────────────────────────────────
+
+    private String generateOtp() {
+        return String.format("%06d", new SecureRandom().nextInt(999999));
+    }
 
     private record OtpEntry(String otp, LocalDateTime expiry) {}
 }
