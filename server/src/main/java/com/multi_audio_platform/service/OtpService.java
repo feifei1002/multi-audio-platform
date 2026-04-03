@@ -97,8 +97,11 @@ public class OtpService {
         }
 
         // Mark user as verified
-        User user = userRepository.findByEmail(key)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        Optional<User> optionalUser = userRepository.findByEmail(key);
+        if (optionalUser.isEmpty()) {
+            return new RegisterResponse(false, "Account not found. Please sign up again.", null);
+        }
+        User user = optionalUser.get();
 
         user.setVerified(true);
         user.setVerificationToken(null);
