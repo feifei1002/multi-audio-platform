@@ -34,6 +34,32 @@ export const indexStyles = StyleSheet.create({
     width: '100%',
     maxWidth: 720,
   },
+  glassCard: {
+    borderRadius: 28,
+    padding: Spacing.five,
+    borderWidth: 1,
+    shadowColor: '#0B1824',
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+  },
+  mainCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    gap: Spacing.three,
+  },
+  headerRow: {
+    gap: Spacing.one,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+  },
+  heroCard: {
+    width: '100%',
+    height: 320,
+    borderRadius: 28,
+    overflow: 'hidden',
+  },
   cardStage: {
     width: '100%',
     paddingHorizontal: Spacing.three,
