@@ -9,4 +9,5 @@ public class SignInResponse {
     private boolean success;
     private String message;
     private String redirect; // "linking" or "main"
+    private Long userId;
 }
