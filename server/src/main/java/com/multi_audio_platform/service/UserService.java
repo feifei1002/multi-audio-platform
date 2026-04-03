@@ -60,7 +60,7 @@ public class UserService {
 
         RegisterResponse otpResult = otpService.sendSignUpOtp(user.getEmail());
         if (!otpResult.isSuccess()) {
-            return new RegisterResponse(true,
+            return new RegisterResponse(false,
                 "Account created but we couldn't send the activation code. Please contact support.",
                 user.getId());
         }
