@@ -47,6 +47,9 @@ public class User {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private NavigationState navigationState;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

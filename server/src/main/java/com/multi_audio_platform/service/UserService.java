@@ -27,15 +27,15 @@ public class UserService {
             request.getLastName() == null || request.getLastName().isBlank() ||
             request.getDateOfBirth() == null || request.getDateOfBirth().isBlank() ||
             request.getEmail() == null || request.getEmail().isBlank()) {
-            return new RegisterResponse(false, "Please fill in all fields.");
+            return new RegisterResponse(false, "Please fill in all fields.", null);
         }
 
         if (!request.getEmail().contains("@")) {
-            return new RegisterResponse(false, "Please enter a valid email address.");
+            return new RegisterResponse(false, "Please enter a valid email address.", null);
         }
 
         if (userRepository.existsByEmail(request.getEmail().toLowerCase().trim())) {
-            return new RegisterResponse(false, "An account with this email already exists.");
+            return new RegisterResponse(false, "An account with this email already exists.", null);
         }
 
         LocalDate dob;
@@ -44,7 +44,7 @@ public class UserService {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
             dob = LocalDate.parse(cleaned, formatter);
         } catch (DateTimeParseException e) {
-            return new RegisterResponse(false, "Invalid date format. Use DD/MM/YYYY.");
+            return new RegisterResponse(false, "Invalid date format. Use DD/MM/YYYY.", null);
         }
 
         User user = User.builder()
@@ -61,42 +61,50 @@ public class UserService {
         RegisterResponse otpResult = otpService.sendSignUpOtp(user.getEmail());
         if (!otpResult.isSuccess()) {
             return new RegisterResponse(true,
-                "Account created but we couldn't send the activation code. Please contact support.");
+                "Account created but we couldn't send the activation code. Please contact support.",
+                user.getId());
         }
 
         return new RegisterResponse(true,
-            "Account created! Please enter the code sent to " + user.getEmail());
+            "Account created! Please enter the code sent to " + user.getEmail(),
+            user.getId());
     }
 
     // ─── Sign In ──────────────────────────────────────────────────────────────
 
     public SignInResponse signIn(String email) {
         if (email == null || email.isBlank()) {
-            return new SignInResponse(false, "Please enter your email.", null);
+            return new SignInResponse(false, "Please enter your email.", null,null);
         }
 
         if (!email.contains("@")) {
-            return new SignInResponse(false, "Please enter a valid email address.", null);
+            return new SignInResponse(false, "Please enter a valid email address.", null,null);
         }
 
         Optional<User> optionalUser = userRepository.findByEmail(email.toLowerCase().trim());
 
         if (optionalUser.isEmpty()) {
-            return new SignInResponse(false, "No account found with this email.", null);
+            return new SignInResponse(false, "No account found with this email.", null,null);
         }
 
         User user = optionalUser.get();
 
         if (!Boolean.TRUE.equals(user.getVerified())) {
             return new SignInResponse(false,
-                "Your account is not verified. Please check your email for the activation code.", null);
+                "Your account is not verified. Please check your email for the activation code.", null,null);
         }
 
         // Redirect based on whether user has linked a service
         if (!Boolean.TRUE.equals(user.getLinked())) {
-            return new SignInResponse(true, "Welcome back, " + user.getFirstName() + "!", "linking");
+            return new SignInResponse(true, "Welcome back, " + user.getFirstName() + "!", "linking", user.getId());
         }
 
-        return new SignInResponse(true, "Welcome back, " + user.getFirstName() + "!", "main");
+        return new SignInResponse(true, "Welcome back, " + user.getFirstName() + "!", "main", user.getId());
+    }
+
+    // ─── Get User By ID ───────────────────────────────────────────────────────
+
+    public Optional<User> getUserById(Long id) {
+        return userRepository.findById(id);
     }
 }

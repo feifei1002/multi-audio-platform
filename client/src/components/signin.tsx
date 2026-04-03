@@ -11,6 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';
+import { saveUserSession } from '@/utils/storage';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -20,7 +21,12 @@ interface SignInScreenProps {
 
 // ─── API ──────────────────────────────────────────────────────────────────────
 
-async function signIn(email: string): Promise<{ success: boolean; message: string; redirect: string | null }> {
+async function signIn(email: string): Promise<{
+  success: boolean;
+  message: string;
+  redirect: string | null;
+  userId?: number;
+}> {
   try {
     const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/sign-in`, {
       method: 'POST',
@@ -121,8 +127,12 @@ export default function SignInScreen({ onNavigateToSignUp }: SignInScreenProps) 
     setStatusMessage(result.message);
 
     if (result.success) {
+      // Save userId to session if provided
+      if (result.userId) {
+        await saveUserSession('userId', String(result.userId));
+      }
       if (result.redirect === 'linking') {
-        router.replace('/linking');
+        router.replace('/linking' as any);
       } else if (result.redirect === 'main') {
         router.replace('/');
       }

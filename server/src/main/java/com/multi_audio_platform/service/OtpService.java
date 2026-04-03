@@ -1,6 +1,8 @@
 package com.multi_audio_platform.service;
 
 import com.multi_audio_platform.dto.RegisterResponse;
+import com.multi_audio_platform.model.CardType;
+import com.multi_audio_platform.model.NavigationState;
 import com.multi_audio_platform.model.User;
 import com.multi_audio_platform.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +23,6 @@ public class OtpService {
     private final UserRepository userRepository;
     private final JavaMailSender mailSender;
 
-    // Separate OTP stores for sign-up and sign-in
     private final Map<String, OtpEntry> signUpOtpStore = new ConcurrentHashMap<>();
 
     private static final int OTP_EXPIRY_MINUTES = 5;
@@ -30,18 +31,23 @@ public class OtpService {
 
     public RegisterResponse sendSignUpOtp(String email) {
         if (email == null || email.isBlank()) {
-            return new RegisterResponse(false, "Email is required.");
+            return new RegisterResponse(false, "Please enter your email.", null);
+        }
+
+        if (!email.contains("@")) {
+            return new RegisterResponse(false, "Please enter a valid email address.", null);
         }
 
         Optional<User> optionalUser = userRepository.findByEmail(email.toLowerCase().trim());
         if (optionalUser.isEmpty()) {
-            return new RegisterResponse(false, "No account found with this email.");
+            return new RegisterResponse(false, "No account found with this email.", null);
         }
 
         User user = optionalUser.get();
 
+        // Only send OTP to unverified users — this is for sign up activation
         if (Boolean.TRUE.equals(user.getVerified())) {
-            return new RegisterResponse(false, "Account is already verified. Please sign in.");
+            return new RegisterResponse(false, "Account is already verified. Please sign in.", null);
         }
 
         String otp = generateOtp();
@@ -61,48 +67,56 @@ public class OtpService {
             );
             mailSender.send(message);
         } catch (Exception e) {
-            return new RegisterResponse(false, "Failed to send OTP. Please try again.");
+            return new RegisterResponse(false, "Failed to send OTP. Please try again.", null);
         }
 
-        return new RegisterResponse(true, "Activation code sent to " + email);
+        return new RegisterResponse(true, "Activation code sent to " + email, null);
     }
 
     // ─── Verify Sign Up OTP ───────────────────────────────────────────────────
 
     public RegisterResponse verifySignUpOtp(String email, String otp) {
         if (email == null || otp == null) {
-            return new RegisterResponse(false, "Invalid request.");
+            return new RegisterResponse(false, "Invalid request.", null);
         }
 
         String key = email.toLowerCase().trim();
         OtpEntry entry = signUpOtpStore.get(key);
 
         if (entry == null) {
-            return new RegisterResponse(false, "No activation code was sent to this email.");
+            return new RegisterResponse(false, "No activation code was sent to this email.", null);
         }
 
         if (LocalDateTime.now().isAfter(entry.expiry())) {
             signUpOtpStore.remove(key);
-            return new RegisterResponse(false, "Code has expired. Please request a new one.");
+            return new RegisterResponse(false, "Code has expired. Please request a new one.", null);
         }
 
         if (!entry.otp().equals(otp.trim())) {
-            return new RegisterResponse(false, "Incorrect code. Please try again.");
+            return new RegisterResponse(false, "Incorrect code. Please try again.", null);
         }
 
         // Mark user as verified
-        Optional<User> optionalUser = userRepository.findByEmail(key);
-        if (optionalUser.isEmpty()) {
-            return new RegisterResponse(false, "Account not found.");
-        }
+        User user = userRepository.findByEmail(key)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        User user = optionalUser.get();
         user.setVerified(true);
         user.setVerificationToken(null);
-        userRepository.save(user);
 
+        // Initialize default NavigationState on first verification (from her version)
+        if (user.getNavigationState() == null) {
+            NavigationState initialState = NavigationState.builder()
+                    .user(user)
+                    .cardIdentifier(CardType.PROFILE)
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            user.setNavigationState(initialState);
+        }
+
+        userRepository.save(user);
         signUpOtpStore.remove(key);
-        return new RegisterResponse(true, "Account activated successfully!");
+
+        return new RegisterResponse(true, "Account activated successfully!", user.getId());
     }
 
     // ─── Helper ───────────────────────────────────────────────────────────────
