@@ -25,10 +25,28 @@ export function AudioInformationBoard({audio, loading, theme} : Props) {
         );
     }
 
+    const inferContentTypeFromFilename = (filename?: string) => {
+      const lowerFilename = filename?.toLowerCase() ?? '';
+
+      if (lowerFilename.endsWith('.webp')) {
+        return 'image/webp';
+      }
+
+      if (lowerFilename.endsWith('.png')) {
+        return 'image/png';
+      }
+
+      if (lowerFilename.endsWith('.jpg') || lowerFilename.endsWith('.jpeg')) {
+        return 'image/jpeg';
+      }
+
+      return 'image/jpeg';
+    };
+
     // Default to JPEG if content type is missing or invalid
     const coverContentType = 
       (audio.cover as any)?.contentType && typeof(audio.cover as any).contentType === 
-      'string' ? (audio.cover as any).contentType : 'image/jpeg';
+      'string' ? (audio.cover as any).contentType : inferContentTypeFromFilename(audio.cover?.filename);
 
     return (
         <View style={styles.container}>

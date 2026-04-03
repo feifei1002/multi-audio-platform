@@ -34,61 +34,99 @@ export const indexStyles = StyleSheet.create({
     width: '100%',
     maxWidth: 720,
   },
-  glassCard: {
+  cardStage: {
+    width: '100%',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+  },
+  cardStack: {
+    width: '100%',
+    height: 992,
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  swapCard: {
+    position: 'absolute',
+    width: '74%',
+    height: 666,
     borderRadius: 28,
-    padding: Spacing.five,
+    opacity: 0.82,
+    overflow: 'hidden',
     borderWidth: 1,
-    shadowColor: '#0B1824',
-    shadowOpacity: 0.18,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
+    shadowColor: '#08131E',
+    shadowOpacity: 0.2,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
   },
-  cardOffset: {
-    position: 'absolute',
-    top: -Spacing.four,
-    left: Spacing.four,
-    right: Spacing.one,
+  swapPressable: {
+    width: '100%',
     height: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
   },
-  mainCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.16)',
-    gap: Spacing.three,
+  frontCard: {
+    zIndex: 2,
+    opacity: 1,
   },
-  glassHighlight: {
-    position: 'absolute',
-    top: Spacing.three,
-    right: Spacing.three,
-    width: 120,
-    height: 120,
-    borderRadius: 80,
-    opacity: 0.2,
+  backCard: {
+    zIndex: 1,
   },
-  headerRow: {
-    gap: Spacing.one,
+  cardHeader: {
+    paddingHorizontal: Spacing.three,
+    paddingTop: Spacing.three,
+    gap: 4,
   },
-  typeTag: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+  cardHeaderCompact: {
+    paddingTop: Spacing.two,
+  },
+  cardType: {
+    fontSize: 11,
+    fontWeight: '700',
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
-  title: {
-    fontSize: 24,
+  cardTitle: {
+    fontSize: 20,
     fontWeight: '700',
   },
-  status: {
-    fontSize: 12,
+  cardMediaWrap: {
+    flex: 1,
+    paddingHorizontal: Spacing.three,
+    paddingBottom: Spacing.three,
   },
-  connectionStatus: {
-    fontSize: 11,
-  },
-  heroCard: {
-    width: '100%',
-    height: 320,
-    borderRadius: 28,
+  podcastVisual: {
+    marginHorizontal: Spacing.three,
+    marginTop: Spacing.two,
+    height: 212,
+    borderRadius: 24,
     overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  podcastGlow: {
+    position: 'absolute',
+    width: 180,
+    height: 180,
+    borderRadius: 999,
+    backgroundColor: '#4B7A61',
+    opacity: 0.36,
+  },
+  podcastVisualLabel: {
+    fontSize: 24,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  podcastMeta: {
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    gap: 6,
+  },
+  podcastSubtitle: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  podcastDescription: {
+    fontSize: 12,
+    lineHeight: 18,
   },
   progressDock: {
     position: 'absolute',
@@ -104,7 +142,6 @@ export const indexStyles = StyleSheet.create({
     overflow: 'hidden',
   },
   progressFill: {
-    width: '35%',
     height: '100%',
     borderRadius: 999,
   },
@@ -117,15 +154,38 @@ export const indexStyles = StyleSheet.create({
   metaText: {
     fontSize: 12,
   },
-  musicButton: {
-    left: '25%',
-    marginLeft: -32,
-    bottom: Spacing.five + 96,
+  transportDock: {
+    position: 'absolute',
+    bottom: Spacing.five + 88,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: Spacing.three,
   },
-  podcastButton: {
-    left: '75%',
-    marginLeft: -32,
-    bottom: Spacing.five + 96,
+  transportButton: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 2,
+  },
+  transportPrimary: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#08131E',
+    shadowOpacity: 0.24,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+  },
+  transportHint: {
+    fontSize: 10,
+    fontWeight: '700',
   },
   settingsButton: {
     top: Spacing.four,
