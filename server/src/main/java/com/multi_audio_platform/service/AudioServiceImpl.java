@@ -3,6 +3,8 @@ package com.multi_audio_platform.service;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -63,6 +65,16 @@ public class AudioServiceImpl implements AudioService {
             e.printStackTrace();
         }
         return audioRepository.save(audio);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Audio getAudioByTypePaginated(AudioType type, Pageable pageable) {
+        Page<Audio> audioPage = audioRepository.findByType(type, pageable);
+        if(audioPage.hasContent()) {
+            return audioPage.getContent().get(0);
+        }
+        return null;
     }
     
     

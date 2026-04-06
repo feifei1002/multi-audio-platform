@@ -162,8 +162,8 @@ export const indexStyles = StyleSheet.create({
     alignItems: 'center',
   },
   progressTrack: {
-    width: '60%',
-    height: 12,
+    width: '85%',
+    height: 8,
     borderRadius: 999,
     overflow: 'hidden',
   },
@@ -217,4 +217,38 @@ export const indexStyles = StyleSheet.create({
     top: Spacing.four,
     right: Spacing.four,
   },
+
+  playbackContainer: {
+  marginTop: 'auto', // Pushes the whole block to the bottom of the card
+  paddingBottom: Spacing.four,
+  alignItems: 'center',
+  width: '100%',
+},
+
+progressContainer: {
+  width: '100%',
+  alignItems: 'center',
+  marginBottom: 20, // Space between progress and buttons
+},
+
+controlsRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  width: '100%',
+  paddingHorizontal: Spacing.three,
+},
+skipButton: {
+  width: 50,
+  height: 50,
+  borderRadius: 25,
+  backgroundColor: 'rgba(255, 255, 255, 0.08)', // Use a subtle overlay
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+joystickWrapper: {
+  width: 100,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
 });

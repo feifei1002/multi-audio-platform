@@ -11,7 +11,7 @@ export function useCardSwipe({ onSwipeLeft, onSwipeRight, threshold = 50 }: Swip
     const panResponder = useMemo(() =>
         PanResponder.create({
             onMoveShouldSetPanResponder: (_, gestureState) => {
-                return Math.abs(gestureState.dx) > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
+                return Math.abs(gestureState.dx) > 40 && Math.abs(gestureState.dy) < 20;
             },
             onPanResponderRelease: (_, gestureState) => {
                 if (gestureState.dx > threshold) {

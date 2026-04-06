@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, Text, View } from 'react-native';
+import { act, useEffect, useRef, useState } from 'react';
+import { Animated, DimensionValue, Pressable, Text, View } from 'react-native';
 import { Pause, Play, RotateCcw, RotateCw } from 'lucide-react-native';
 
 import { indexStyles } from '@/styles/indexScreen';
@@ -11,25 +11,19 @@ import { CARDS } from '@/types/cards';
 import { useCardSwipe } from '@/hooks/use-card-swipe';
 import { getUserSession } from '@/utils/storage';
 import { UserProfile } from '@/types/user';
+import { PlayToggleButton } from '@/components/PlayToggleButton';
 
 type ContentKey = 'music' | 'podcast';
-
-type CardData = {
-  key: ContentKey;
-  title: string;
-  subtitle: string;
-  description: string;
-  type: ContentKey;
-  audio: AudioData | null;
-  loading: boolean;
-};
 
 export default function App() {
   const theme = useTheme();
   const [message, setMessage] = useState("Trying to connect...");
   const [isPlaying, setIsPlaying] = useState(false);
+  const [volume, setVolume] = useState(55);
   const [musicAudio, setMusicAudio] = useState<AudioData | null>(null);
   const [podcastAudio, setPodcastAudio] = useState<AudioData | null>(null);
+  const [musicId, setMusicId] = useState(1);
+  const [podcastId, setPodcastId] = useState(1);
   const [loading, setLoading] = useState(true);
   const [activeContent, setActiveContent] = useState<ContentKey>('music');
   const [playerState, setPlayerState] = useState<Record<ContentKey, { position: number; duration: number }>>({
@@ -38,7 +32,7 @@ export default function App() {
   });
   const swapProgress = useRef(new Animated.Value(0)).current;
   const [activeCardIndex, setActiveCardIndex] = useState<number>(
-    Math.max(CARDS.indexOf('AUDIO_PLAYER'), 0),
+    Math.max(CARDS.indexOf('MUSIC'), 0),
   );
   const [userId, setUserId] = useState<number | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -64,6 +58,11 @@ export default function App() {
       if (direction === 'next') return (prev + 1) % CARDS.length;
       return (prev - 1 + CARDS.length) % CARDS.length;
     });
+  };
+
+  const handleTapSwap = () => {
+    // Moves to the next card in the array
+    setActiveCardIndex((prev) => (prev + 1) % CARDS.length);
   };
 
   const swipeHandlers = useCardSwipe({
@@ -99,7 +98,7 @@ export default function App() {
       .then(response => {
         if (response.status === 404) {
           console.log("New user detected. Initializing navigation state...");
-          saveNavigationState(CARDS[Math.max(CARDS.indexOf('AUDIO_PLAYER'), 0)]);
+          saveNavigationState(CARDS[Math.max(CARDS.indexOf('MUSIC'), 0)]);
           return null;
         }
         if (response.ok) {
@@ -122,32 +121,15 @@ export default function App() {
     if (!userId) return;
     const currentCard = CARDS[activeCardIndex];
     saveNavigationState(currentCard);
+    swapProgress.setValue(0);
+    Animated.spring(swapProgress, {
+        toValue: 1,
+        useNativeDriver: true,
+        friction: 8,
+        tension: 40,
+      }).start();
   }, [activeCardIndex, userId]);
 
-  const musicCard: CardData = {
-    key: 'music',
-    title: musicAudio?.name ?? 'Music',
-    subtitle: musicAudio?.author ?? 'Unknown artist',
-    description: musicAudio?.description ?? 'No description available',
-    type: 'music' as const,
-    audio: musicAudio,
-    loading,
-  };
-
-  const podcastCard: CardData = {
-    key: 'podcast',
-    title: podcastAudio?.name ?? 'Focus Journal',
-    subtitle: podcastAudio?.author ?? 'Podcast episode',
-    description: podcastAudio?.description ?? 'A temporary podcast placeholder used to prototype the content card switch interaction.',
-    type: 'podcast' as const,
-    audio: podcastAudio,
-    loading,
-  };
-
-  const cards: Record<ContentKey, CardData> = {
-    music: musicCard,
-    podcast: podcastCard,
-  };
   const activePlayer = playerState[activeContent];
   const progressRatio = activePlayer.duration > 0 ? activePlayer.position / activePlayer.duration : 0;
   const progressWidth = `${Math.min(Math.max(progressRatio, 0), 1) * 100}%`;
@@ -176,104 +158,147 @@ export default function App() {
     });
   };
 
-  const handleSwapContent = () => {
-    setActiveContent((prev) => (prev === 'music' ? 'podcast' : 'music'));
+
+  const handleTrackSwitch = (direction: 'previous' | 'next') => {
+    const currentType = CARDS[activeCardIndex];
+    console.log(`Joystick release: Switching ${currentType} to ${direction}`);
+    if (currentType === 'MUSIC') {
+    setMusicId((prev) => (direction === 'next' ? prev + 1 : Math.max(1, prev - 1)));
+  } else if (currentType === 'PODCAST') {
+    setPodcastId((prev) => (direction === 'next' ? prev + 1 : Math.max(1, prev - 1)));
+  }
   };
 
   const handleSkip = (deltaSeconds: number) => {
     updatePlayerPosition(activeContent, activePlayer.position + deltaSeconds);
   };
 
-  const renderCardContent = (card: CardData, layer: 'front' | 'back') => {
+  const renderCardContent = (cardName: string, layer: 'front' | 'back') => {
     const isFront = layer === 'front';
-
-    if (card.type === 'music') {
-      return (
-        <>
+    const currentAudio = cardName === 'MUSIC' ? musicAudio : podcastAudio;
+    switch (cardName) {
+      case 'PROFILE':
+        return (
           <View style={[indexStyles.cardHeader, !isFront && indexStyles.cardHeaderCompact]}>
-            <Text style={[indexStyles.cardType, { color: theme.text }]}>MUSIC</Text>
-            <Text style={[indexStyles.cardTitle, { color: theme.text }]}>{card.title}</Text>
-          </View>
-          <View style={indexStyles.cardMediaWrap}>
-            <AudioInformationBoard audio={card.audio} loading={card.loading} theme={theme} />
-          </View>
-        </>
-      );
-    }
-
-    return (
-      <>
-        <View style={[indexStyles.cardHeader, !isFront && indexStyles.cardHeaderCompact]}>
-          <Text style={[indexStyles.cardType, { color: theme.text }]}>PODCAST</Text>
-          <Text style={[indexStyles.cardTitle, { color: theme.text }]}>{card.title}</Text>
+          <Text style={[indexStyles.cardType, { color: theme.text }]}>PROFILE</Text>
+          <Text style={[indexStyles.cardTitle, { color: theme.text }]}>
+            {userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : 'Loading Profile...'}
+          </Text>
         </View>
+        );
+      case 'PLAYLIST':
+        return (
+          <View style={[indexStyles.cardHeader, !isFront && indexStyles.cardHeaderCompact]}>
+          <Text style={[indexStyles.cardType, { color: theme.text }]}>PLAYLIST</Text>
+          <Text style={[indexStyles.cardTitle, { color: theme.text }]}>
+            {userProfile ? `${userProfile.firstName}'s Playlist` : 'User Playlist'}
+          </Text>
+        </View>
+        );
+      case 'MUSIC':
+      case 'PODCAST':
+        return (
+          <View style={[indexStyles.cardHeader, !isFront && indexStyles.cardHeaderCompact, { flex: 1 }]}>
+            <Text style={[indexStyles.cardType, { color: theme.text }]}>{cardName}</Text>
+            
+            {/* 1. Audio Info Section */}
+            <AudioInformationBoard 
+              theme={theme} 
+              audio={currentAudio} 
+              loading={loading} 
+            />
 
-        {card.audio ? (
-          <View style={indexStyles.cardMediaWrap}>
-            <AudioInformationBoard audio={card.audio} loading={card.loading} theme={theme} />
+            {/* 2. Playback Controls & Progress - Only on Front */}
+            {isFront && (
+              <View style={indexStyles.playbackContainer}>
+                
+                {/* PROGRESS BAR - Now logically above the buttons */}
+                <View style={indexStyles.progressContainer}>
+                  <View style={[indexStyles.progressTrack, { backgroundColor: theme.backgroundSelected }]}>
+                    <View style={[indexStyles.progressFill, { backgroundColor: theme.text, width: progressWidth as DimensionValue}]} />
+                  </View>
+                  <View style={indexStyles.progressMeta}>
+                    <Text style={[indexStyles.metaText, { color: theme.textSecondary }]}>{formatTime(activePlayer.position)}</Text>
+                    <Text style={[indexStyles.metaText, { color: theme.textSecondary }]}>{formatTime(activePlayer.duration)}</Text>
+                  </View>
+                </View>
+
+                {/* CONTROL ROW */}
+                <View style={indexStyles.controlsRow}>
+                  <Pressable
+                    onPress={(e) => { e.stopPropagation(); handleSkip(-15); }}
+                    style={indexStyles.skipButton}
+                  >
+                    <RotateCcw color={theme.textSecondary} size={22} />
+                  </Pressable>
+
+                  <View style={indexStyles.joystickWrapper}>
+                    <PlayToggleButton
+                      isPlaying={isPlaying}
+                      backgroundColor={theme.backgroundSelected}
+                      textColor={theme.text}
+                      volume={volume}
+                      onVolumeChange={setVolume}
+                      onTrackSwitch={handleTrackSwitch}
+                      onPress={() => setIsPlaying(!isPlaying)}
+                    />
+                  </View>
+
+                  <Pressable
+                    onPress={(e) => { e.stopPropagation(); handleSkip(15); }}
+                    style={indexStyles.skipButton}
+                  >
+                    <RotateCw color={theme.textSecondary} size={22} />
+                  </Pressable>
+                </View>
+              </View>
+            )}
           </View>
-        ) : (
-          <>
-            <View style={[indexStyles.podcastVisual, { backgroundColor: theme.backgroundElement }]}>
-              <View style={indexStyles.podcastGlow} />
-              <Text style={[indexStyles.podcastVisualLabel, { color: theme.text }]}>Podcast</Text>
-            </View>
-            <View style={indexStyles.podcastMeta}>
-              <Text style={[indexStyles.podcastSubtitle, { color: theme.text }]}>{card.subtitle}</Text>
-              <Text style={[indexStyles.podcastDescription, { color: theme.textSecondary }]} numberOfLines={isFront ? 3 : 2}>
-                {card.description}
-              </Text>
-            </View>
-          </>
-        )}
-      </>
-    );
+        );
+      
+      default:
+        return null;
+    }
   };
 
   useEffect(() => {
-    setLoading(true);
-    Promise.allSettled([
-      fetch(`${process.env.EXPO_PUBLIC_API_URL}/audio/type/MUSIC`).then(response => response.json()),
-      fetch(`${process.env.EXPO_PUBLIC_API_URL}/audio/type/PODCAST`).then(response => response.json()),
-      fetch(`${process.env.EXPO_PUBLIC_API_URL}/audio/1`).then(response => response.json()),
-    ])
-      .then(([musicResult, podcastResult, musicFallbackResult]) => {
-        const musicByType =
-          musicResult.status === 'fulfilled' && Array.isArray(musicResult.value)
-            ? musicResult.value[0] ?? null
-            : null;
-
-        const musicFallback =
-          musicFallbackResult.status === 'fulfilled' && musicFallbackResult.value?.id
-            ? musicFallbackResult.value
-            : null;
-
-        const podcastByType =
-          podcastResult.status === 'fulfilled' && Array.isArray(podcastResult.value)
-            ? podcastResult.value[0] ?? null
-            : null;
-
-        const resolvedMusic = musicByType ?? musicFallback;
-
-        setMusicAudio(resolvedMusic);
-        setPodcastAudio(podcastByType);
-        setLoading(false);
-        setMessage(resolvedMusic ? 'Connected' : 'Failed to connect');
-      })
-      .catch(() => {
-        setLoading(false);
-        setMessage('Failed to connect');
-      });
-  }, []);
-
-  useEffect(() => {
     Animated.spring(swapProgress, {
-      toValue: activeContent === 'music' ? 0 : 1,
+      toValue: activeCardIndex,
       useNativeDriver: true,
       friction: 8,
       tension: 68,
     }).start();
-  }, [activeContent, swapProgress]);
+  }, [activeContent]);
+
+  useEffect(() => {
+  if (!userId) return;
+
+  const fetchContent = async (type: 'MUSIC' | 'PODCAST', id: number) => {
+    try {
+      const url = `${process.env.EXPO_PUBLIC_API_URL}/api/audios/type/${type}/id/${id}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Server Error: ${res.status}`);
+      const data = await res.json();
+      
+      if (type === 'MUSIC') setMusicAudio(data);
+      else setPodcastAudio(data);
+    } catch (err) {
+      console.error(`${type} fetch failed:`, err);
+    }
+  };
+
+  const init = async () => {
+    setLoading(true);
+    // Fetch both types on mount or whenever IDs change
+    await Promise.all([
+      fetchContent('MUSIC', musicId),
+      fetchContent('PODCAST', podcastId)
+    ]);
+    setLoading(false);
+  };
+
+  init();
+}, [musicId, podcastId, userId]);
 
   useEffect(() => {
     if (!isPlaying) {
@@ -319,51 +344,6 @@ export default function App() {
     }
   }, [isPlaying, playerState]);
 
-  const musicCardMotionStyle = {
-    opacity: swapProgress.interpolate({
-      inputRange: [0, 1],
-      outputRange: [1, 0.82],
-    }),
-    transform: [
-      {
-        translateX: swapProgress.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0, 58],
-        }),
-      },
-      {
-        translateY: swapProgress.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0, 22],
-        }),
-      },
-    ],
-  };
-
-  const podcastCardMotionStyle = {
-    opacity: swapProgress.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0.82, 1],
-    }),
-    transform: [
-      {
-        translateX: swapProgress.interpolate({
-          inputRange: [0, 1],
-          outputRange: [58, 0],
-        }),
-      },
-      {
-        translateY: swapProgress.interpolate({
-          inputRange: [0, 1],
-          outputRange: [22, 0],
-        }),
-      },
-    ],
-  };
-
-  const cardRenderOrder: ContentKey[] =
-    activeContent === 'music' ? ['podcast', 'music'] : ['music', 'podcast'];
-
   return (
     <View
       style={[indexStyles.screen, { backgroundColor: theme.background }]}
@@ -374,126 +354,61 @@ export default function App() {
 
       <View style={indexStyles.stack}>
         <View {...swipeHandlers} style={{ flex: 1 }}>
-          {CARDS[activeCardIndex] === 'PROFILE' && (
-            <View
-              style={[indexStyles.glassCard, indexStyles.mainCard, { borderColor: theme.backgroundSelected }]}
-              accessibilityLabel="Profile panel"
-            >
-              <View style={indexStyles.headerRow}>
-                <Text style={[indexStyles.title, { color: theme.text }]}>Profile</Text>
-              </View>
-              <View style={[indexStyles.heroCard, { justifyContent: 'center', alignItems: 'center' }]}>
-                <Text style={{ color: theme.textSecondary }}>
-                  {userProfile
-                    ? `${userProfile.firstName} ${userProfile.lastName}`
-                    : 'Loading Profile...'}
-                </Text>
+          <View style={indexStyles.cardStage}>
+            <View style={indexStyles.cardStack}>
+              {CARDS.map((cardName, index) => {
+                const isFront = activeCardIndex === index;
+                const isNext = (activeCardIndex + 1) % CARDS.length === index;
+                if (!isFront && !isNext) return null;
+                const layerType = isFront ? 'front' : 'back';
 
-                {userProfile && (
-                  <Text style={{ color: theme.textSecondary, marginTop: 4 }}>
-                    {userProfile.dateOfBirth}
-                  </Text>
-                )}
-              </View>
-            </View>
-          )}
+                const translateX = isFront 
+                  ? swapProgress.interpolate({ inputRange: [0, 1], outputRange: [58, 0] }) 
+                  : 58;
 
-          {CARDS[activeCardIndex] === 'AUDIO_PLAYER' && (
-            <View
-              style={indexStyles.cardStage}
-              accessibilityLabel="Main playback panel"
-            >
-              <View style={indexStyles.cardStack}>
-                {cardRenderOrder.map((cardKey) => {
-                  const card = cardKey === 'music' ? musicCard : podcastCard;
-                  const isFront = activeContent === cardKey;
-                  const motionStyle = cardKey === 'music' ? musicCardMotionStyle : podcastCardMotionStyle;
+                const translateY = isFront 
+                  ? swapProgress.interpolate({ inputRange: [0, 1], outputRange: [22, 0] }) 
+                  : 22;
+
+                const scale = isFront 
+                  ? swapProgress.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) 
+                  : 0.9;
+
+                const opacity = isFront 
+                  ? swapProgress.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }) 
+                  : 0.6;
 
                   return (
-                    <Animated.View
-                      key={cardKey}
-                      style={[
-                        indexStyles.swapCard,
-                        isFront ? indexStyles.frontCard : indexStyles.backCard,
-                        motionStyle,
-                        { backgroundColor: theme.backgroundSelected, borderColor: theme.backgroundElement },
-                      ]}
-                    >
-                      <Pressable
-                        onPress={handleSwapContent}
-                        style={indexStyles.swapPressable}
-                        accessibilityLabel={`${card.type} content card`}
-                      >
-                        {renderCardContent(card, isFront ? 'front' : 'back')}
-                      </Pressable>
-                    </Animated.View>
-                  );
-                })}
-              </View>
-            </View>
-          )}
+                  <Animated.View
+                    key={cardName}
+                    style={[
+                      indexStyles.swapCard,
+                      {
+                        position: 'absolute',
+                        zIndex: isFront ? 10 : 5,
+                        opacity: opacity,
+                        transform: [{ translateX }, { translateY }, { scale }],
+                        backgroundColor: theme.backgroundSelected,
+                        borderColor: theme.backgroundElement,
+                      }
+                    ]}
+                  >
+                    <Pressable 
+                      onPress={handleTapSwap} 
 
-          {CARDS[activeCardIndex] === 'PLAYLIST' && (
-            <View
-              style={[indexStyles.glassCard, indexStyles.mainCard, { borderColor: theme.backgroundSelected }]}
-              accessibilityLabel="Playlist panel"
-            >
-              <View style={indexStyles.headerRow}>
-                <Text style={[indexStyles.title, { color: theme.text }]}>Playlist</Text>
-              </View>
-              <View style={[indexStyles.heroCard, { justifyContent: 'center', alignItems: 'center' }]}>
-                <Text style={{ color: theme.textSecondary }}>User Playlist Here</Text>
-              </View>
+                      style={{ flex: 1, padding: 20 }}
+                    >
+                      {renderCardContent(cardName, layerType)}
+                    </Pressable>
+                  </Animated.View>
+                );
+              }
+              )}
             </View>
-          )}
+
+          </View>
         </View>
       </View>
-
-      {CARDS[activeCardIndex] === 'AUDIO_PLAYER' && (
-        <>
-          <View style={indexStyles.progressDock} accessibilityLabel="Progress bar slot">
-            <View style={[indexStyles.progressTrack, { backgroundColor: theme.backgroundSelected }]}>
-              <View style={[indexStyles.progressFill, { backgroundColor: theme.text, width: progressWidth }]} />
-            </View>
-            <View style={indexStyles.progressMeta}>
-              <Text style={[indexStyles.metaText, { color: theme.textSecondary }]}>{formatTime(activePlayer.position)}</Text>
-              <Text style={[indexStyles.metaText, { color: theme.textSecondary }]}>{formatTime(activePlayer.duration)}</Text>
-            </View>
-          </View>
-
-          <View style={indexStyles.transportDock} accessibilityLabel="Playback controls">
-            <Pressable
-              accessibilityLabel="Skip backward 15 seconds"
-              onPress={() => handleSkip(-15)}
-              style={[indexStyles.transportButton, { backgroundColor: theme.backgroundSelected }]}
-            >
-              <RotateCcw color={theme.textSecondary} size={20} strokeWidth={2.2} />
-              <Text style={[indexStyles.transportHint, { color: theme.textSecondary }]}>15</Text>
-            </Pressable>
-
-            <Pressable
-              accessibilityLabel={isPlaying ? 'Pause playback' : 'Play playback'}
-              onPress={() => setIsPlaying((prev) => !prev)}
-              style={[indexStyles.transportPrimary, { backgroundColor: theme.text }]}
-            >
-              {isPlaying ? (
-                <Pause color={theme.background} size={24} strokeWidth={2.6} />
-              ) : (
-                <Play color={theme.background} size={24} strokeWidth={2.6} />
-              )}
-            </Pressable>
-
-            <Pressable
-              accessibilityLabel="Skip forward 15 seconds"
-              onPress={() => handleSkip(15)}
-              style={[indexStyles.transportButton, { backgroundColor: theme.backgroundSelected }]}
-            >
-              <RotateCw color={theme.textSecondary} size={20} strokeWidth={2.2} />
-              <Text style={[indexStyles.transportHint, { color: theme.textSecondary }]}>15</Text>
-            </Pressable>
-          </View>
-        </>
-      )}
 
       <SettingsButton
         accessibilityLabel="Settings button slot"
