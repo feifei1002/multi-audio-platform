@@ -201,6 +201,7 @@ export default function App() {
             <View style={indexStyles.progressContainer}>
               <View style={[indexStyles.progressTrack, { backgroundColor: theme.backgroundSelected }]}>
                 <View style={[indexStyles.progressFill, { backgroundColor: theme.text, width: progressWidth }]} />
+                <View style={[indexStyles.progressThumb, { backgroundColor: theme.text, left: progressWidth }]} />
               </View>
               <View style={indexStyles.progressMeta}>
                 <Text style={[indexStyles.metaText, { color: theme.textSecondary }]}>{formatTime(activePlayer.position)}</Text>
@@ -229,7 +230,7 @@ export default function App() {
               <View style={{ width: 100, alignItems: 'center', justifyContent: 'center' }}>
                 <PlayToggleButton
                   isPlaying={isPlaying}
-                  backgroundColor={theme.backgroundSelected}
+                  backgroundColor={theme.textSecondary}
                   textColor={theme.text}
                   volume={volume}
                   onVolumeChange={setVolume}
