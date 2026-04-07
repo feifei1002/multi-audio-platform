@@ -75,7 +75,7 @@ public class AudioServiceImpl implements AudioService {
         if(audioPage.hasContent()) {
             return Optional.of(audioPage.getContent().get(0));
         }
-        throw new NotFoundException(audioPage.getContent().isEmpty() ? null : audioPage.getContent().get(0));
+        return Optional.empty();
     }
     
     

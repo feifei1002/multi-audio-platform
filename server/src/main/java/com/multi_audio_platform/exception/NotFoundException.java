@@ -12,6 +12,6 @@ public class NotFoundException extends RuntimeException {
     }
 
     public NotFoundException(Audio audio) {
-        super("Audio with ID " + audio.getId() + " not found.");
+        this(audio != null ? audio.getId() : null);
     }
 }

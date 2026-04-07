@@ -65,12 +65,16 @@ public class AudioController {
     }
 
     @GetMapping("/type/{type}/id/{index}")
-    public ResponseEntity<Optional<Audio>> getAudioByIndex(@PathVariable AudioType type, @PathVariable int index) {
-        int pageNumber = Math.max(0, index - 1);
+    public ResponseEntity<Audio> getAudioByIndex(@PathVariable AudioType type, @PathVariable int index) {
+        if(index < 1) {
+            return ResponseEntity.badRequest().build();
+        }
+        int pageNumber = index - 1;
         PageRequest pageRequest = PageRequest.of(pageNumber, 1, Sort.by("id"));
         Optional<Audio> result = audioService.getAudioByTypePaginated(type, pageRequest);
     
-        return result != null ? ResponseEntity.ok(result) : ResponseEntity.notFound().build();
+        return result.map(ResponseEntity::ok)
+                     .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping(value = "/add", consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
