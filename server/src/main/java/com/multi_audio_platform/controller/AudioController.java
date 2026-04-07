@@ -1,6 +1,7 @@
 package com.multi_audio_platform.controller;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -25,7 +26,7 @@ import tools.jackson.databind.ObjectMapper;
 
 @RestController
 @RequestMapping("/api/audios")
-@CrossOrigin(originPatterns = "*", allowCredentials = "true", allowedHeaders = "*")
+@CrossOrigin(originPatterns = "*", allowedHeaders = "*")
 public class AudioController {
 
     private final AudioService audioService;
@@ -35,11 +36,6 @@ public class AudioController {
         this.audioService = audioService;
         this.coverService = coverService;
     }
-    
-    // @GetMapping("/")
-    // public Map<String, String> ping() {
-    //     return Collections.singletonMap("status", "Backend is reachable!");
-    // }
 
     @GetMapping("/")
     public List<Audio> getAllAudio() {
@@ -69,10 +65,10 @@ public class AudioController {
     }
 
     @GetMapping("/type/{type}/id/{index}")
-    public ResponseEntity<Audio> getAudioByIndex(@PathVariable AudioType type, @PathVariable int index) {
+    public ResponseEntity<Optional<Audio>> getAudioByIndex(@PathVariable AudioType type, @PathVariable int index) {
         int pageNumber = Math.max(0, index - 1);
         PageRequest pageRequest = PageRequest.of(pageNumber, 1, Sort.by("id"));
-        Audio result = audioService.getAudioByTypePaginated(type, pageRequest);
+        Optional<Audio> result = audioService.getAudioByTypePaginated(type, pageRequest);
     
         return result != null ? ResponseEntity.ok(result) : ResponseEntity.notFound().build();
     }

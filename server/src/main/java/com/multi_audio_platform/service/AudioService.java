@@ -16,5 +16,5 @@ public interface AudioService {
     List<Audio> getAudioByName(String name);
     Optional<Audio> getAudioById(Long id);
     Audio createAudio(Audio audio, MultipartFile coverFile);
-    Audio getAudioByTypePaginated(AudioType type, Pageable pageable);
+    Optional<Audio> getAudioByTypePaginated(AudioType type, Pageable pageable);
 }

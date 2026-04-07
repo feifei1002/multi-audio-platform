@@ -70,10 +70,6 @@ export default function App() {
     }
   };
 
-  const handleTapSwap = () => {
-    setActiveCardIndex((prev) => (prev + 1) % CARDS.length);
-  };
-
   const handleTrackSwitch = (direction: 'previous' | 'next') => {
     const currentType = CARDS[activeCardIndex];
     if (currentType === 'MUSIC') {
@@ -108,7 +104,10 @@ export default function App() {
       if (res.ok) return res.json();
       if (res.status === 404) saveNavigationState(CARDS[activeCardIndex]);
       return null;
-    }).then(data => { if (data?.cardIdentifier) setActiveCardIndex(CARDS.indexOf(data.cardIdentifier)); });
+    }).then(data => { if (data?.cardIdentifier) {
+        const nextCardIndex = CARDS.indexOf(data.cardIdentifier);
+        setActiveCardIndex(nextCardIndex >= 0 ? nextCardIndex : activeCardIndex);
+      } });
   }, [userId]);
 
   // 3. Audio Data Fetching
@@ -258,7 +257,7 @@ export default function App() {
     <View style={[indexStyles.screen, { backgroundColor: theme.background }]}>
       <View style={indexStyles.gradientLayerOne} /><View style={indexStyles.gradientLayerTwo} />
       <View style={indexStyles.stack}>
-        <View {...handleTapSwap} style={indexStyles.cardStack}>
+        <View style={indexStyles.cardStack}>
           {CARDS.map((cardName, index) => {
             const isFront = activeCardIndex === index;
             const isNext = (activeCardIndex + 1) % CARDS.length === index;
@@ -283,7 +282,7 @@ export default function App() {
           })}
         </View>
       </View>
-      <SettingsButton style={indexStyles.settingsButton} backgroundColor={''} textColor={''} />
+      <SettingsButton style={indexStyles.settingsButton} backgroundColor={theme.backgroundSelected} textColor={theme.textSecondary} />
     </View>
   );
 }

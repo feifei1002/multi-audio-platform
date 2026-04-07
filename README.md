@@ -53,5 +53,5 @@ If you prefer to run services directly from their respective directories:
     ```
 
 To check if everything works:
-1. Go to `http://{YOUR_IP}:8080/audio` or `http://localhost:8080/audio` if the page displays some data of audios means your are connected to the database.
+1. Go to `http://{YOUR_IP}:8080/api/audios/` or `http://localhost:8080/api/audios/` if the page displays some data of audios means your are connected to the database.
 2. Go to `http://{YOUR_IP}:8081` or `http://localhost:8081` if the page displays `Backend is reachable!` means every works.

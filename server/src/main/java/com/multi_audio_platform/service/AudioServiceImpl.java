@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.multi_audio_platform.exception.NotFoundException;
 import com.multi_audio_platform.model.Audio;
 import com.multi_audio_platform.model.AudioType;
 import com.multi_audio_platform.model.Cover;
@@ -69,12 +70,12 @@ public class AudioServiceImpl implements AudioService {
 
     @Override
     @Transactional(readOnly = true)
-    public Audio getAudioByTypePaginated(AudioType type, Pageable pageable) {
+    public Optional<Audio> getAudioByTypePaginated(AudioType type, Pageable pageable) {
         Page<Audio> audioPage = audioRepository.findByType(type, pageable);
         if(audioPage.hasContent()) {
-            return audioPage.getContent().get(0);
+            return Optional.of(audioPage.getContent().get(0));
         }
-        return null;
+        throw new NotFoundException(audioPage.getContent().isEmpty() ? null : audioPage.getContent().get(0));
     }
     
     

@@ -5,7 +5,7 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
-import com.multi_audio_platform.exception.UserNotFoundException;
+import com.multi_audio_platform.exception.NotFoundException;
 import com.multi_audio_platform.model.CardType;
 import com.multi_audio_platform.model.NavigationState;
 import com.multi_audio_platform.model.User;
@@ -27,7 +27,7 @@ public class NavigationStateServiceImpl implements NavigationStateService {
     @Override
     public NavigationState saveState(Long userId, CardType cardIdentifier) {
         User user = userRepository.findById(userId)
-        .orElseThrow(() -> new UserNotFoundException(userId));
+        .orElseThrow(() -> new NotFoundException(userId));
 
         NavigationState navigationState = navigationStateRepository.findById(userId)
         .orElse(new NavigationState());
