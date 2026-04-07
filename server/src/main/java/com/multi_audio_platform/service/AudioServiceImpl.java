@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.multi_audio_platform.exception.NotFoundException;
 import com.multi_audio_platform.model.Audio;
 import com.multi_audio_platform.model.AudioType;
 import com.multi_audio_platform.model.Cover;
