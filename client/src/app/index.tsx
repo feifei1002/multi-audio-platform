@@ -11,6 +11,7 @@ import { CARDS } from '@/types/cards';
 import { getUserSession } from '@/utils/storage';
 import { UserProfile } from '@/types/user';
 import { PlayToggleButton } from '@/components/PlayToggleButton';
+import { ProgressBar } from '@/components/ProgressBar';
 
 type ContentKey = 'music' | 'podcast';
 
@@ -38,6 +39,7 @@ export default function App() {
   // --- STATE: Playback Control ---
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(55);
+  const [isDraggingSlider, setIsDraggingSlider] = useState(false);
   const [playerState, setPlayerState] = useState<Record<ContentKey, { position: number; duration: number }>>({
     music: { position: 42, duration: 238 },
     podcast: { position: 305, duration: 1800 },
@@ -47,15 +49,6 @@ export default function App() {
   const currentCardName = CARDS[activeCardIndex];
   const activeContent: ContentKey = currentCardName === 'PODCAST' ? 'podcast' : 'music';
   const activePlayer = playerState[activeContent];
-  const progressRatio = activePlayer.duration > 0 ? activePlayer.position / activePlayer.duration : 0;
-  const progressWidth = `${Math.min(Math.max(progressRatio, 0), 1) * 100}%` as DimensionValue;
-
-  // HELPERS
-  const formatTime = (totalSeconds: number) => {
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
 
   const saveNavigationState = async (cardIdentifier: string) => {
     if (!userId) return;
@@ -87,6 +80,11 @@ export default function App() {
         position: Math.min(Math.max(prev[activeContent].position + deltaSeconds, 0), prev[activeContent].duration) 
       },
     }));
+  };
+
+  const handleCardPress = () => {
+    if (isDraggingSlider) return; 
+    setActiveCardIndex((prev) => (prev + 1) % CARDS.length);
   };
 
   // --- EFFECTS ---
@@ -206,7 +204,7 @@ export default function App() {
           <Text style={[indexStyles.cardType, themeStyle]}>{cardName}</Text>
           <Text style={[indexStyles.cardTitle, themeStyle]}>
             {cardName === 'PROFILE' 
-              ? (userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : 'Loading...') 
+              ? (userProfile ? `${userProfile.firstName} ${userProfile.lastName}'s Profile` : 'Loading...') 
               : (userProfile ? `${userProfile.firstName}'s Playlist` : 'Playlist')}
           </Text>
         </View>
@@ -225,16 +223,18 @@ export default function App() {
           <View style={indexStyles.playbackContainer}>
             
             {/* PROGRESS BAR */}
-            <View style={indexStyles.progressContainer}>
-              <View style={[indexStyles.progressTrack, { backgroundColor: theme.backgroundSelected }]}>
-                <View style={[indexStyles.progressFill, { backgroundColor: theme.text, width: progressWidth }]} />
-                <View style={[indexStyles.progressThumb, { backgroundColor: theme.text, left: progressWidth }]} />
-              </View>
-              <View style={indexStyles.progressMeta}>
-                <Text style={[indexStyles.metaText, { color: theme.textSecondary }]}>{formatTime(activePlayer.position)}</Text>
-                <Text style={[indexStyles.metaText, { color: theme.textSecondary }]}>{formatTime(activePlayer.duration)}</Text>
-              </View>
-            </View>
+            <ProgressBar 
+              theme={theme}
+              position={activePlayer.position}
+              duration={activePlayer.duration}
+              onSeek={(newSeconds) => {
+                setPlayerState(prev => ({
+                  ...prev,
+                  [activeContent]: { ...prev[activeContent], position: newSeconds }
+                }));
+              }}
+              onInteractionChange={setIsDraggingSlider}
+            />
 
             {/* CONTROL ROW */}
             <View style={{ 
@@ -302,7 +302,7 @@ export default function App() {
                 ],
                 backgroundColor: theme.backgroundSelected,
               }]}>
-                <Pressable onPress={() => setActiveCardIndex((prev) => (prev + 1) % CARDS.length)} style={{ flex: 1, padding: 20 }}>
+                <Pressable onPress={handleCardPress} style={{ flex: 1, padding: 20 }}>
                   {renderCardContent(cardName, isFront)}
                 </Pressable>
               </Animated.View>
