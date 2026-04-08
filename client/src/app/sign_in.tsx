@@ -6,7 +6,7 @@ export default function SignInRoute() {
   return (
     <SignInScreen
       onNavigateToSignUp={() => router.push('/sign_up')}
-      onSignInSuccess={() => router.replace('/')}
+      onSignInSuccess={() => router.replace('/(app)')}
     />
   );
 }

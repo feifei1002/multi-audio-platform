@@ -29,7 +29,7 @@ public class NavigationStateServiceImpl implements NavigationStateService {
         User user = userRepository.findById(userId)
         .orElseThrow(() -> new NotFoundException(userId));
 
-        NavigationState navigationState = navigationStateRepository.findById(userId)
+        NavigationState navigationState = navigationStateRepository.findByUser(user)
         .orElse(new NavigationState());
         navigationState.setUser(user);
         navigationState.setCardIdentifier(cardIdentifier);

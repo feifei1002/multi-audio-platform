@@ -63,7 +63,7 @@ export default function App() {
       await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/navigation/update`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, cardIdentifier }),
+        body: JSON.stringify({ userId: userId, cardIdentifier:cardIdentifier }),
       });
     } catch (err) {
       console.error("Persistence failed:", err);
@@ -99,44 +99,72 @@ export default function App() {
   // 2. Fetch User Profile & Navigation State
   useEffect(() => {
     if (!userId) return;
-    fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/users/${userId}`).then(res => res.json()).then(setUserProfile);
-    fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/navigation/${userId}`).then(res => {
+    fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/users/${userId}`)
+    .then(res => {
+      if(res.ok) return res.json();
+      throw new Error('Failed to fetch user profile');
+    })
+    .then(setUserProfile)
+    .catch(err => console.warn("Profile fetch handled:", err.message));
+    
+    fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/navigation/${userId}`)
+    .then(res => {
       if (res.ok) return res.json();
       if (res.status === 404) saveNavigationState(CARDS[activeCardIndex]);
       return null;
     }).then(data => { if (data?.cardIdentifier) {
         const nextCardIndex = CARDS.indexOf(data.cardIdentifier);
         setActiveCardIndex(nextCardIndex >= 0 ? nextCardIndex : activeCardIndex);
-      } });
+      } })
+      .catch(err => console.warn("Navigation fetch handled:", err.message));
   }, [userId]);
 
-  // 3. Audio Data Fetching
+  // 3. Audio Data Fetching: MUSIC & PODCAST
   useEffect(() => {
     if (!userId) return;
-    const fetchContent = async (type: 'MUSIC' | 'PODCAST', id: number) => {
-    try {
-      const url = `${process.env.EXPO_PUBLIC_API_URL}/api/audios/type/${type}/id/${id}`;
-      const res = await fetch(url);
-
-      if (!res.ok) {
-        if (res.status === 404) {
-          console.log(`No more ${type} tracks available at ID: ${id}`);
-
+    const fetchMusic = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/audios/type/MUSIC/id/${musicId}`);
+        if(res.ok) {
+          const data = await res.json();
+          setMusicAudio(data);
+        } else if (res.status === 404) {
+          console.log("End of Music playlist, restarting...");
+          setMusicId(1);
         }
-        return;
+      } catch (err) {
+        console.error('Music fetch failed:', err);
+      } finally {
+        setLoading(false);
       }
-      const data = await res.json();
-      
-      if (type === 'MUSIC') setMusicAudio(data);
-      else setPodcastAudio(data);
-      
-    } catch (err) {
-      console.error(`${type} fetch failed:`, err);
-    }
-  };
-    setLoading(true);
-    Promise.all([fetchContent('MUSIC', musicId), fetchContent('PODCAST', podcastId)]).finally(() => setLoading(false));
-  }, [musicId, podcastId, userId]);
+    };
+    fetchMusic();
+  }, [musicId, userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const fetchPodcast = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/audios/type/PODCAST/id/${podcastId}`);
+        if(res.ok) {
+          const data = await res.json();
+          setPodcastAudio(data);
+        } else if (res.status === 404) {
+          console.log("End of Podcast playlist, restarting...");
+          setPodcastId(1);
+        } else {
+          console.error('Failed to fetch podcast audio');
+        }
+      } catch (err) {
+        console.error('Podcast fetch failed:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPodcast();
+  }, [podcastId, userId]);
 
   // 4. Update Persistence & Animation on Card Change
   useEffect(() => {
