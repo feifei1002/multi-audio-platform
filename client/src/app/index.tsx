@@ -1,255 +1,316 @@
-import { useEffect, useState } from 'react';
-import { View, Text } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, DimensionValue, Pressable, Text, View } from 'react-native';
+import { RotateCcw, RotateCw } from 'lucide-react-native';
 
 import { indexStyles } from '@/styles/indexScreen';
-import { ContentsSwitchButton } from '@/components/ContentsSwitchButton';
-import { PlayToggleButton } from '@/components/PlayToggleButton';
 import { SettingsButton } from '@/components/SettingsButton';
 import { useTheme } from '@/hooks/use-theme';
 import { AudioInformationBoard } from '@/components/AudioInformationBoard';
 import { AudioData } from '@/types/audio';
 import { CARDS } from '@/types/cards';
-import { useCardSwipe } from '@/hooks/use-card-swipe';
 import { getUserSession } from '@/utils/storage';
 import { UserProfile } from '@/types/user';
+import { PlayToggleButton } from '@/components/PlayToggleButton';
+import { ProgressBar } from '@/components/ProgressBar';
+
+type ContentKey = 'music' | 'podcast';
 
 export default function App() {
   const theme = useTheme();
-  const [message, setMessage] = useState("Trying to connect...");
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(55);
-  const [audio, setAudio] = useState<AudioData | null>(null);
-  const [audioId, setAudioId] = useState<number>(1);
+  
+  // --- STATE: UI & Navigation ---
+  const [activeCardIndex, setActiveCardIndex] = useState<number>(
+    Math.max(CARDS.indexOf('MUSIC'), 0),
+  );
+  const swapProgress = useRef(new Animated.Value(0)).current;
   const [loading, setLoading] = useState(true);
-  const [activeCardIndex, setActiveCardIndex] = useState<number>(1);
+
+  // --- STATE: User & Session ---
   const [userId, setUserId] = useState<number | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-  useEffect (() => {
-    async function loadUser() {
-      try {
-        const savedUserId = await getUserSession('userId');
-        if(savedUserId) {
-          setUserId(Number(savedUserId))
-        }
-      } catch (error) {
-        console.error("Error loading user session:", error);
-      }
-    }
-    loadUser();
-  }, []);
+  // --- STATE: Audio Data & Selection ---
+  const [musicAudio, setMusicAudio] = useState<AudioData | null>(null);
+  const [podcastAudio, setPodcastAudio] = useState<AudioData | null>(null);
+  const [musicId, setMusicId] = useState(1);
+  const [podcastId, setPodcastId] = useState(1);
+  // const [activeContent, setActiveContent] = useState<ContentKey>('music');
 
-  useEffect(() => {
-    if (!userId) return;
-
-    fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/users/${userId}`)
-      .then(response => response.json())
-      .then((data: UserProfile) => {
-        setUserProfile(data);
-      }).catch(err => console.log("Failed to load user profile:", err));
-
-
-    fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/navigation/${userId}`)
-      .then(response => {
-        if(response.status === 404) {
-          console.log("New user detected. Initializing navigation state...");
-          saveNavigationState(CARDS[activeCardIndex]);
-          return null;
-        } if (response.ok) {
-          return response.json();
-        }
-        throw new Error("Failed to fetch navigation state" + response.status);
-      })
-      .then(data => {
-        if (data?.cardIdentifier) {
-          const index = CARDS.indexOf(data.cardIdentifier);
-          if (index !== -1) {
-            setActiveCardIndex(index);
-          }
-        }
-      })
-      .catch(err => console.log("New user: Initializing state..."));
-  }, [userId]);
-
-  const handleCardNavigation = (direction: 'next' | 'previous') => {
-  setActiveCardIndex((prev) => {
-    if (direction === 'next') return (prev + 1) % CARDS.length;
-    return (prev - 1 + CARDS.length) % CARDS.length;
+  // --- STATE: Playback Control ---
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [volume, setVolume] = useState(55);
+  const [isDraggingSlider, setIsDraggingSlider] = useState(false);
+  const [playerState, setPlayerState] = useState<Record<ContentKey, { position: number; duration: number }>>({
+    music: { position: 42, duration: 238 },
+    podcast: { position: 305, duration: 1800 },
   });
-};
 
-  useEffect(() => {
-    const currentCard = CARDS[activeCardIndex];
-    saveNavigationState(currentCard);
-  }, [activeCardIndex]);
+  // --- DERIVED STATE
+  const currentCardName = CARDS[activeCardIndex];
+  const activeContent: ContentKey = currentCardName === 'PODCAST' ? 'podcast' : 'music';
+  const activePlayer = playerState[activeContent];
 
   const saveNavigationState = async (cardIdentifier: string) => {
     if (!userId) return;
-  try {
-    await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/navigation/update`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: userId,
-        cardIdentifier: cardIdentifier,
-      }),
-    });
-  } catch (err) {
-    console.error("Persistence failed:", err);
-  }
-};
-
-const swipeHandlers = useCardSwipe({
-    onSwipeLeft: () => handleCardNavigation('next'),
-    onSwipeRight: () => handleCardNavigation('previous'),
-  });
-
-  const playbackLabel = isPlaying ? 'Playing' : 'Paused';
-
-  const handleTogglePlayPause = () => {
-    setIsPlaying(prev => !prev);
+    try {
+      await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/navigation/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: userId, cardIdentifier:cardIdentifier }),
+      });
+    } catch (err) {
+      console.error("Persistence failed:", err);
+    }
   };
 
   const handleTrackSwitch = (direction: 'previous' | 'next') => {
-    setMessage(direction === 'next' ? 'Switched to next track' : 'Switched to previous track');
-    setAudioId((currentId) => {
-      if (direction === 'next') {
-        return currentId + 1;
-      } else {
-        return currentId > 1 ? currentId - 1 : 1; // Prevents going below 1
-      }
-    });
+    const currentType = CARDS[activeCardIndex];
+    if (currentType === 'MUSIC') {
+      setMusicId((prev) => (direction === 'next' ? prev + 1 : Math.max(1, prev - 1)));
+    } else if (currentType === 'PODCAST') {
+      setPodcastId((prev) => (direction === 'next' ? prev + 1 : Math.max(1, prev - 1)));
+    }
   };
 
+  const handleSkip = (deltaSeconds: number) => {
+    setPlayerState((prev) => ({
+      ...prev,
+      [activeContent]: { 
+        ...prev[activeContent], 
+        position: Math.min(Math.max(prev[activeContent].position + deltaSeconds, 0), prev[activeContent].duration) 
+      },
+    }));
+  };
+
+  const handleCardPress = () => {
+    if (isDraggingSlider) return; 
+    setActiveCardIndex((prev) => (prev + 1) % CARDS.length);
+  };
+
+  // --- EFFECTS ---
+
+  // 1. Initial Load: User Session
   useEffect(() => {
-    setLoading(true);
-    fetch(`${process.env.EXPO_PUBLIC_API_URL}/audio/${audioId}`)
-      .then(response => response.json())
-      .then(data => {
-        setAudio(data);
+    getUserSession('userId').then(id => id && setUserId(Number(id)));
+  }, []);
+
+  // 2. Fetch User Profile & Navigation State
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/users/${userId}`)
+    .then(res => {
+      if(res.ok) return res.json();
+      throw new Error('Failed to fetch user profile');
+    })
+    .then(setUserProfile)
+    .catch(err => console.warn("Profile fetch handled:", err.message));
+    
+    fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/navigation/${userId}`)
+    .then(res => {
+      if (res.ok) return res.json();
+      if (res.status === 404) saveNavigationState(CARDS[activeCardIndex]);
+      return null;
+    }).then(data => { if (data?.cardIdentifier) {
+        const nextCardIndex = CARDS.indexOf(data.cardIdentifier);
+        setActiveCardIndex(nextCardIndex >= 0 ? nextCardIndex : activeCardIndex);
+      } })
+      .catch(err => console.warn("Navigation fetch handled:", err.message));
+  }, [userId]);
+
+  // 3. Audio Data Fetching: MUSIC & PODCAST
+  useEffect(() => {
+    if (!userId) return;
+    const fetchMusic = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/audios/type/MUSIC/id/${musicId}`);
+        if(res.ok) {
+          const data = await res.json();
+          setMusicAudio(data);
+        } else if (res.status === 404) {
+          console.log("End of Music playlist, restarting...");
+          setMusicId(1);
+        }
+      } catch (err) {
+        console.error('Music fetch failed:', err);
+      } finally {
         setLoading(false);
-        setMessage('Connected');
-      })
-      .catch(err => {
+      }
+    };
+    fetchMusic();
+  }, [musicId, userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const fetchPodcast = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/audios/type/PODCAST/id/${podcastId}`);
+        if(res.ok) {
+          const data = await res.json();
+          setPodcastAudio(data);
+        } else if (res.status === 404) {
+          console.log("End of Podcast playlist, restarting...");
+          setPodcastId(1);
+        } else {
+          console.error('Failed to fetch podcast audio');
+        }
+      } catch (err) {
+        console.error('Podcast fetch failed:', err);
+      } finally {
         setLoading(false);
-        setMessage('Failed to connect');
+      }
+    };
+    fetchPodcast();
+  }, [podcastId, userId]);
+
+  // 4. Update Persistence & Animation on Card Change
+  useEffect(() => {
+    if (userId) saveNavigationState(currentCardName);
+    swapProgress.setValue(0);
+    Animated.spring(swapProgress, { toValue: 1, useNativeDriver: true, friction: 8, tension: 40 }).start();
+  }, [activeCardIndex, userId]);
+
+  // 5. Playback Timer
+  useEffect(() => {
+    if (!isPlaying) return;
+    const timer = setInterval(() => {
+      setPlayerState((prev) => {
+        const curr = prev[activeContent];
+        if (curr.position >= curr.duration) { setIsPlaying(false); return prev; }
+        return { ...prev, [activeContent]: { ...curr, position: curr.position + 1 } };
       });
-  }, [audioId]);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isPlaying, activeContent]);
+
+  // 6. Monitor Playback Completion
+  useEffect(() => {
+    const allTracksFinished = Object.values(playerState).every(
+      ({ position, duration }) => position >= duration,
+    );
+
+    if (isPlaying && allTracksFinished) setIsPlaying(false);
+  }, [isPlaying, playerState]);
+
+  // --- RENDER HELPERS ---
+  const renderCardContent = (cardName: string, isFront: boolean) => {
+    const currentAudio = cardName === 'MUSIC' ? musicAudio : podcastAudio;
+    const themeStyle = { color: theme.text };
+
+    if (cardName === 'PROFILE' || cardName === 'PLAYLIST') {
+      return (
+        <View style={[indexStyles.cardHeader, !isFront && indexStyles.cardHeaderCompact]}>
+          <Text style={[indexStyles.cardType, themeStyle]}>{cardName}</Text>
+          <Text style={[indexStyles.cardTitle, themeStyle]}>
+            {cardName === 'PROFILE' 
+              ? (userProfile ? `${userProfile.firstName} ${userProfile.lastName}'s Profile` : 'Loading...') 
+              : (userProfile ? `${userProfile.firstName}'s Playlist` : 'Playlist')}
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={[indexStyles.cardHeader, !isFront && indexStyles.cardHeaderCompact, { flex: 1 }]}>
+        <Text style={[indexStyles.cardType, themeStyle]}>{cardName}</Text>
+        
+        {/* 1. Audio Info Section */}
+        <AudioInformationBoard theme={theme} audio={currentAudio} loading={loading} />
+
+        {/* 2. Playback Controls & Progress */}
+        {isFront && (
+          <View style={indexStyles.playbackContainer}>
+            
+            {/* PROGRESS BAR */}
+            <ProgressBar 
+              theme={theme}
+              position={activePlayer.position}
+              duration={activePlayer.duration}
+              onSeek={(newSeconds) => {
+                setPlayerState(prev => ({
+                  ...prev,
+                  [activeContent]: { ...prev[activeContent], position: newSeconds }
+                }));
+              }}
+              onInteractionChange={setIsDraggingSlider}
+            />
+
+            {/* CONTROL ROW */}
+            <View style={{ 
+              flexDirection: 'row', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              width: '100%', 
+              paddingHorizontal: 10,
+              height: 120 
+            }}>
+              {/* Backward 15s */}
+              <Pressable
+                onPress={(e) => { e.stopPropagation(); handleSkip(-15); }}
+                style={indexStyles.skipButton}
+              >
+                <RotateCcw color={theme.textSecondary} size={22} />
+              </Pressable>
+
+              {/* THE JOYSTICK */}
+              <View style={{ width: 100, alignItems: 'center', justifyContent: 'center' }}>
+                <PlayToggleButton
+                  isPlaying={isPlaying}
+                  backgroundColor={theme.textSecondary}
+                  textColor={theme.text}
+                  volume={volume}
+                  onVolumeChange={setVolume}
+                  onTrackSwitch={handleTrackSwitch}
+                  onPress={() => setIsPlaying(!isPlaying)}
+                />
+              </View>
+
+              {/* Forward 15s */}
+              <Pressable
+                onPress={(e) => { e.stopPropagation(); handleSkip(15); }}
+                style={indexStyles.skipButton}
+              >
+                <RotateCw color={theme.textSecondary} size={22} />
+              </Pressable>
+            </View>
+
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
-    <View
-      style={[indexStyles.screen, { backgroundColor: theme.background }]}
-      accessibilityLabel="Playback screen"
-    >
-      <View style={indexStyles.gradientLayerOne} />
-      <View style={indexStyles.gradientLayerTwo} />
-
+    <View style={[indexStyles.screen, { backgroundColor: theme.background }]}>
+      <View style={indexStyles.gradientLayerOne} /><View style={indexStyles.gradientLayerTwo} />
       <View style={indexStyles.stack}>
-        <View style={[indexStyles.glassCard, indexStyles.cardOffset, { borderColor: theme.backgroundSelected }]}>
-          <View style={[indexStyles.glassHighlight, { backgroundColor: theme.backgroundElement }]} />
-        </View>
-        <View {...swipeHandlers} style={{ flex: 1 }}>
-        
-        {/* CARD 1: PROFILE */}
-        {CARDS[activeCardIndex] === 'PROFILE' && (
-        <View
-          style={[indexStyles.glassCard, indexStyles.mainCard, { borderColor: theme.backgroundSelected }]}
-          accessibilityLabel="Profile panel"
-        >
-          <View style={indexStyles.headerRow}>
-            <Text style={[indexStyles.title, { color: theme.text }]}>Profile</Text>
-          </View>
-          <View style={[indexStyles.heroCard, { justifyContent: 'center', alignItems: 'center' }]}>
-            <Text style={{color: theme.textSecondary}}>
-              {userProfile 
-              ? `${userProfile.firstName} ${userProfile.lastName}` 
-              : 'Loading Profile...'}
-            </Text>
+        <View style={indexStyles.cardStack}>
+          {CARDS.map((cardName, index) => {
+            const isFront = activeCardIndex === index;
+            const isNext = (activeCardIndex + 1) % CARDS.length === index;
+            if (!isFront && !isNext) return null;
 
-              {userProfile && (
-                <Text style={{ color: theme.textSecondary, marginTop: 4 }}>
-                {userProfile.dateOfBirth}
-                </Text>
-              )}
-          </View>
-        </View>
-        )}
-
-        {/* CARD 2: AUDIO PLAYER */}
-        {CARDS[activeCardIndex] === 'AUDIO_PLAYER' && (
-
-        <View
-          style={[indexStyles.glassCard, indexStyles.mainCard, { borderColor: theme.backgroundSelected }]}
-          accessibilityLabel="Main playback panel"
-        >
-          <View style={indexStyles.headerRow}>
-            <Text style={[indexStyles.typeTag, { color: theme.text }]}>{audio?.type?.toUpperCase()}</Text>
-            <Text style={[indexStyles.title, { color: theme.text }]}>{audio?.name}</Text>
-            <Text style={[indexStyles.status, { color: theme.textSecondary }]}>
-              {playbackLabel} • Volume {volume}%
-            </Text>
-            <Text style={[indexStyles.connectionStatus, { color: theme.textSecondary }]}>{message}</Text>
-          </View>
-
-          <View style={[indexStyles.heroCard, { backgroundColor: theme.backgroundSelected }]}
-            accessibilityLabel="Album or podcast card slot"
-          >
-          <AudioInformationBoard audio={audio} loading={loading} theme={theme} />
-          </View>
-        </View>
-        )}
-
-
-        {/* CARD 3: PLAYLIST */}
-        {CARDS[activeCardIndex] === 'PLAYLIST' && (
-        <View
-          style={[indexStyles.glassCard, indexStyles.mainCard, { borderColor: theme.backgroundSelected }]}
-          accessibilityLabel="Playlist panel"
-        >
-          <View style={indexStyles.headerRow}>
-            <Text style={[indexStyles.title, { color: theme.text }]}>Playlist</Text>
-          </View>
-          <View style={[indexStyles.heroCard, { justifyContent: 'center', alignItems: 'center' }]}>
-            <Text style={{color: theme.textSecondary}}>User Playlist Here</Text>
-          </View>
-        </View>
-        )}
+            return (
+              <Animated.View key={cardName} style={[indexStyles.swapCard, {
+                zIndex: isFront ? 10 : 5,
+                opacity: isFront ? swapProgress : 0.6,
+                transform: [
+                  { translateX: isFront ? swapProgress.interpolate({ inputRange: [0, 1], outputRange: [58, 0] }) : 58 },
+                  { translateY: isFront ? swapProgress.interpolate({ inputRange: [0, 1], outputRange: [22, 0] }) : 22 },
+                  { scale: isFront ? swapProgress.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] }) : 0.9 }
+                ],
+                backgroundColor: theme.backgroundSelected,
+              }]}>
+                <Pressable onPress={handleCardPress} style={{ flex: 1, padding: 20 }}>
+                  {renderCardContent(cardName, isFront)}
+                </Pressable>
+              </Animated.View>
+            );
+          })}
         </View>
       </View>
-
-      <View style={indexStyles.progressDock} accessibilityLabel="Progress bar slot">
-        <View style={[indexStyles.progressTrack, { backgroundColor: theme.backgroundSelected }]}>
-          <View style={[indexStyles.progressFill, { backgroundColor: theme.text }]} />
-        </View>
-        <View style={indexStyles.progressMeta}>
-          <Text style={[indexStyles.metaText, { color: theme.textSecondary }]}>0:42</Text>
-          <Text style={[indexStyles.metaText, { color: theme.textSecondary }]}>3:58</Text>
-        </View>
-      </View>
-
-      <PlayToggleButton
-        isPlaying={isPlaying}
-        accessibilityLabel={isPlaying ? 'Pause toggle button slot' : 'Play toggle button slot'}
-        backgroundColor={theme.backgroundSelected}
-        textColor={theme.textSecondary}
-        volume={volume}
-        onVolumeChange={setVolume}
-        onTrackSwitch={handleTrackSwitch}
-        onPress={handleTogglePlayPause}
-        style={indexStyles.musicButton}
-      />
-      <ContentsSwitchButton
-        accessibilityLabel="Contents switch button slot"
-        backgroundColor={theme.backgroundSelected}
-        textColor={theme.textSecondary}
-        style={indexStyles.podcastButton}
-      />
-      <SettingsButton
-        accessibilityLabel="Settings button slot"
-        backgroundColor={theme.backgroundSelected}
-        textColor={theme.textSecondary}
-        style={indexStyles.settingsButton}
-      />
+      <SettingsButton style={indexStyles.settingsButton} backgroundColor={theme.backgroundSelected} textColor={theme.textSecondary} />
     </View>
   );
 }

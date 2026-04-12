@@ -1,14 +1,17 @@
 package com.multi_audio_platform.controller;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,6 +25,8 @@ import com.multi_audio_platform.service.CoverService;
 import tools.jackson.databind.ObjectMapper;
 
 @RestController
+@RequestMapping("/api/audios")
+@CrossOrigin(originPatterns = "*", allowedHeaders = "*")
 public class AudioController {
 
     private final AudioService audioService;
@@ -31,13 +36,8 @@ public class AudioController {
         this.audioService = audioService;
         this.coverService = coverService;
     }
-    
-    @GetMapping("/")
-    public Map<String, String> ping() {
-        return Collections.singletonMap("status", "Backend is reachable!");
-    }
 
-    @GetMapping("/audio")
+    @GetMapping("/")
     public List<Audio> getAllAudio() {
         return audioService.getAllAudio();
     }
@@ -49,22 +49,35 @@ public class AudioController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/audio/type/{type}")
+    @GetMapping("/type/{type}")
     public List<Audio> getAudioByType(@PathVariable AudioType type) {
         return audioService.getAudioByType(type);
     }
 
-    @GetMapping("/audio/author/{author}")
+    @GetMapping("/author/{author}")
     public List<Audio> getAudioByAuthor(@PathVariable String author) {
         return audioService.getAudioByAuthor(author);
     }
 
-    @GetMapping("/audio/name/{name}")
+    @GetMapping("/name/{name}")
     public List<Audio> getAudioByName(@PathVariable String name) {
         return audioService.getAudioByName(name);
     }
 
-    @PostMapping(value = "/audio/add", consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
+    @GetMapping("/type/{type}/id/{index}")
+    public ResponseEntity<Audio> getAudioByIndex(@PathVariable AudioType type, @PathVariable int index) {
+        if(index < 1) {
+            return ResponseEntity.badRequest().build();
+        }
+        int pageNumber = index - 1;
+        PageRequest pageRequest = PageRequest.of(pageNumber, 1, Sort.by("id"));
+        Optional<Audio> result = audioService.getAudioByTypePaginated(type, pageRequest);
+    
+        return result.map(ResponseEntity::ok)
+                     .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping(value = "/add", consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Audio> addAudio(@RequestPart("audio") String audioJSON, @RequestPart("file") MultipartFile coverFile) {
         
         ObjectMapper objectMapper = new ObjectMapper();

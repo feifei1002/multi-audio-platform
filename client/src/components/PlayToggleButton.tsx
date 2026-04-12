@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Play, Pause } from 'lucide-react-native';
 import {
   Animated,
   PanResponder,
@@ -24,7 +25,7 @@ type PlayToggleButtonProps = {
 
 const JOYSTICK_RANGE = 40;
 const VOLUME_ACTIVATION_DY = 10;
-const TRACK_ACTIVATION_DX = 10;
+const TRACK_ACTIVATION_DX = 20;
 const MAX_VOLUME_RATE_PER_SECOND = 60;
 
 const clampVolume = (nextVolume: number) => {
@@ -42,7 +43,7 @@ export function PlayToggleButton({
   onTrackSwitch,
   style,
 }: PlayToggleButtonProps) {
-  const label = isPlaying ? 'Pause' : 'Play';
+  const label = isPlaying ? <Pause /> : <Play />;
   const [isVolumeBarVisible, setIsVolumeBarVisible] = useState(false);
   const [trackHint, setTrackHint] = useState('');
   const suppressTapRef = useRef(false);
@@ -150,13 +151,15 @@ export function PlayToggleButton({
   const panResponder = useMemo(
     () =>
       PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: (_, gestureState) => {
           if (!isLongPressActiveRef.current) {
             return false;
           }
 
-          return Math.abs(gestureState.dy) > 2 || Math.abs(gestureState.dx) > 2;
+          return Math.abs(gestureState.dy) > 10 || Math.abs(gestureState.dx) > 10;
         },
+        onPanResponderTerminationRequest: () => false,
         onPanResponderMove: (_, gestureState) => {
           if (!isLongPressActiveRef.current) {
             return;
@@ -201,7 +204,8 @@ export function PlayToggleButton({
           stickDyRef.current = clampedDy;
           stickY.setValue(clampedDy);
         },
-        onPanResponderRelease: () => {
+        onPanResponderRelease: (e, gestureState) => {
+          if (e.stopPropagation) e.stopPropagation();
           finishInteraction();
         },
         onPanResponderTerminate: () => {
