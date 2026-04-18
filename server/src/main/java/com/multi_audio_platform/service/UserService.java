@@ -34,7 +34,19 @@ public class UserService {
             return new RegisterResponse(false, "Please enter a valid email address.", null);
         }
 
-        if (userRepository.existsByEmail(request.getEmail().toLowerCase().trim())) {
+        String email = request.getEmail().toLowerCase().trim();
+
+        // Check if email already exists
+        Optional<User> existingUser = userRepository.findByEmail(email);
+        if (existingUser.isPresent()) {
+            User user = existingUser.get();
+
+            // If unverified — let frontend know to show "continue signup" prompt
+            if (!Boolean.TRUE.equals(user.getVerified())) {
+                return new RegisterResponse(false, "UNVERIFIED_ACCOUNT", user.getId());
+            }
+
+            // If verified — normal duplicate error
             return new RegisterResponse(false, "An account with this email already exists.", null);
         }
 
@@ -51,7 +63,7 @@ public class UserService {
                 .firstName(request.getFirstName().trim())
                 .lastName(request.getLastName().trim())
                 .dateOfBirth(dob)
-                .email(request.getEmail().toLowerCase().trim())
+                .email(email)
                 .verified(false)
                 .linked(false)
                 .build();
@@ -60,7 +72,7 @@ public class UserService {
 
         RegisterResponse otpResult = otpService.sendSignUpOtp(user.getEmail());
         if (!otpResult.isSuccess()) {
-            return new RegisterResponse(false,
+            return new RegisterResponse(true,
                 "Account created but we couldn't send the activation code. Please contact support.",
                 user.getId());
         }
@@ -74,27 +86,26 @@ public class UserService {
 
     public SignInResponse signIn(String email) {
         if (email == null || email.isBlank()) {
-            return new SignInResponse(false, "Please enter your email.", null,null);
+            return new SignInResponse(false, "Please enter your email.", null, null);
         }
 
         if (!email.contains("@")) {
-            return new SignInResponse(false, "Please enter a valid email address.", null,null);
+            return new SignInResponse(false, "Please enter a valid email address.", null, null);
         }
 
         Optional<User> optionalUser = userRepository.findByEmail(email.toLowerCase().trim());
 
         if (optionalUser.isEmpty()) {
-            return new SignInResponse(false, "No account found with this email.", null,null);
+            return new SignInResponse(false, "No account found with this email.", null, null);
         }
 
         User user = optionalUser.get();
 
         if (!Boolean.TRUE.equals(user.getVerified())) {
             return new SignInResponse(false,
-                "Your account is not verified. Please check your email for the activation code.", null,null);
+                "Your account is not verified. Please check your email for the activation code.", null, null);
         }
 
-        // Redirect based on whether user has linked a service
         if (!Boolean.TRUE.equals(user.getLinked())) {
             return new SignInResponse(true, "Welcome back, " + user.getFirstName() + "!", "linking", user.getId());
         }

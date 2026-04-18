@@ -41,6 +41,10 @@ public class User {
     @Builder.Default
     private Boolean linked = false;
 
+    @Column(name = "otp_attempts")
+    @Builder.Default
+    private Integer otpAttempts = 0;
+
     @Column(name = "verification_token")
     private String verificationToken;
 

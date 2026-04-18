@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -15,29 +15,111 @@ import { saveUserSession } from '@/utils/storage';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+type Step = 'email' | 'otp';
+
 interface SignInScreenProps {
   onNavigateToSignUp?: () => void;
 }
 
 // ─── API ──────────────────────────────────────────────────────────────────────
 
-async function signIn(email: string): Promise<{
-  success: boolean;
-  message: string;
-  redirect: string | null;
-  userId?: number;
-}> {
+async function sendOtp(email: string): Promise<{ success: boolean; message: string }> {
   try {
-    const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/sign-in`, {
+    const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/send-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
     });
     return await response.json();
   } catch {
+    return { success: false, message: 'Could not reach the server. Please try again.' };
+  }
+}
+
+async function verifyOtp(email: string, otp: string): Promise<{
+  success: boolean;
+  message: string;
+  redirect: string | null;
+  userId?: number;
+}> {
+  try {
+    const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, otp }),
+    });
+    return await response.json();
+  } catch {
     return { success: false, message: 'Could not reach the server. Please try again.', redirect: null };
   }
 }
+
+// ─── OTP Input ────────────────────────────────────────────────────────────────
+
+interface OtpInputProps {
+  value: string;
+  onChange: (val: string) => void;
+  borderColor: string;
+  textColor: string;
+}
+
+function OtpInput({ value, onChange, borderColor, textColor }: OtpInputProps) {
+  const inputRef = useRef<TextInput>(null);
+  const digits = value.padEnd(6, ' ').split('');
+
+  return (
+    <TouchableOpacity
+      activeOpacity={1}
+      onPress={() => inputRef.current?.focus()}
+      accessibilityLabel="OTP input"
+    >
+      <TextInput
+        ref={inputRef}
+        value={value}
+        onChangeText={text => onChange(text.replace(/\D/g, '').slice(0, 6))}
+        keyboardType="numeric"
+        maxLength={6}
+        style={otpStyles.hiddenInput}
+        caretHidden
+      />
+      <View style={otpStyles.row}>
+        {digits.map((digit, i) => (
+          <View
+            key={i}
+            style={[
+              otpStyles.cell,
+              {
+                borderColor: i === value.length ? 'rgba(0,0,0,0.4)' : borderColor,
+                backgroundColor: 'rgba(0,0,0,0.04)',
+              },
+            ]}
+          >
+            <Text style={[otpStyles.cellText, { color: textColor }]}>
+              {digit.trim() || ''}
+            </Text>
+            {i === value.length && (
+              <View style={[otpStyles.cursor, { backgroundColor: textColor }]} />
+            )}
+          </View>
+        ))}
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+const otpStyles = StyleSheet.create({
+  hiddenInput: { position: 'absolute', opacity: 0, width: 1, height: 1 },
+  row: { flexDirection: 'row', gap: 10, justifyContent: 'center' },
+  cell: {
+    width: 46, height: 56, borderRadius: 12,
+    borderWidth: 1, alignItems: 'center', justifyContent: 'center',
+  },
+  cellText: { fontSize: 22, fontWeight: '700' },
+  cursor: {
+    position: 'absolute', bottom: 10, width: 2,
+    height: 20, borderRadius: 1, opacity: 0.7,
+  },
+});
 
 // ─── Glass Input ──────────────────────────────────────────────────────────────
 
@@ -50,11 +132,12 @@ interface GlassInputProps {
   textColor: string;
   placeholderColor: string;
   labelColor: string;
+  editable?: boolean;
 }
 
 function GlassInput({
   label, value, onChangeText, placeholder,
-  borderColor, textColor, placeholderColor, labelColor,
+  borderColor, textColor, placeholderColor, labelColor, editable = true,
 }: GlassInputProps) {
   const [focused, setFocused] = useState(false);
 
@@ -63,7 +146,10 @@ function GlassInput({
       <Text style={[inputStyles.label, { color: labelColor }]}>{label}</Text>
       <View style={[
         inputStyles.inputContainer,
-        { borderColor: focused ? 'rgba(0,0,0,0.4)' : borderColor },
+        {
+          borderColor: focused ? 'rgba(0,0,0,0.4)' : borderColor,
+          opacity: editable ? 1 : 0.55,
+        },
       ]}>
         <TextInput
           style={[
@@ -77,6 +163,7 @@ function GlassInput({
           placeholderTextColor={placeholderColor}
           keyboardType="email-address"
           autoCapitalize="none"
+          editable={editable}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           selectionColor="transparent"
@@ -104,7 +191,9 @@ export default function SignInScreen({ onNavigateToSignUp }: SignInScreenProps) 
   const theme = useTheme();
   const router = useRouter();
 
+  const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [isError, setIsError] = useState(false);
@@ -112,7 +201,7 @@ export default function SignInScreen({ onNavigateToSignUp }: SignInScreenProps) 
   const placeholderColor = 'rgba(0,0,0,0.25)';
   const labelColor = 'rgba(0,0,0,0.6)';
 
-  const handleSignIn = async () => {
+  const handleSendOtp = async () => {
     if (!email.trim()) {
       setIsError(true);
       setStatusMessage('Please enter your email.');
@@ -120,14 +209,29 @@ export default function SignInScreen({ onNavigateToSignUp }: SignInScreenProps) 
     }
     setLoading(true);
     setIsError(false);
-    setStatusMessage('Signing in…');
-    const result = await signIn(email.trim());
+    setStatusMessage('Sending OTP…');
+    const result = await sendOtp(email.trim());
+    setLoading(false);
+    setIsError(!result.success);
+    setStatusMessage(result.message);
+    if (result.success) setStep('otp');
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otp.length < 6) {
+      setIsError(true);
+      setStatusMessage('Please enter the 6-digit OTP.');
+      return;
+    }
+    setLoading(true);
+    setIsError(false);
+    setStatusMessage('Verifying…');
+    const result = await verifyOtp(email.trim(), otp);
     setLoading(false);
     setIsError(!result.success);
     setStatusMessage(result.message);
 
     if (result.success) {
-      // Save userId to session if provided
       if (result.userId) {
         await saveUserSession('userId', String(result.userId));
       }
@@ -137,6 +241,13 @@ export default function SignInScreen({ onNavigateToSignUp }: SignInScreenProps) 
         router.replace('/');
       }
     }
+  };
+
+  const handleBack = () => {
+    setStep('email');
+    setOtp('');
+    setStatusMessage('');
+    setIsError(false);
   };
 
   return (
@@ -158,33 +269,83 @@ export default function SignInScreen({ onNavigateToSignUp }: SignInScreenProps) 
 
         {/* Single glass card */}
         <View style={[styles.glassCard, { borderColor: theme.backgroundSelected }]}>
-          <GlassInput
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            placeholder="example@gmail.com"
-            borderColor={theme.backgroundSelected}
-            textColor={theme.text}
-            placeholderColor={placeholderColor}
-            labelColor={labelColor}
-          />
+          {step === 'email' ? (
+            <>
+              <GlassInput
+                label="Email"
+                value={email}
+                onChangeText={setEmail}
+                placeholder="example@gmail.com"
+                borderColor={theme.backgroundSelected}
+                textColor={theme.text}
+                placeholderColor={placeholderColor}
+                labelColor={labelColor}
+              />
 
-          {statusMessage !== '' && (
-            <Text style={[styles.statusText, { color: isError ? '#E53E3E' : '#38A169' }]}>
-              {statusMessage}
-            </Text>
+              {statusMessage !== '' && (
+                <Text style={[styles.statusText, { color: isError ? '#E53E3E' : '#38A169' }]}>
+                  {statusMessage}
+                </Text>
+              )}
+
+              <TouchableOpacity
+                style={[styles.ctaButton, { opacity: loading ? 0.6 : 1 }]}
+                onPress={handleSendOtp}
+                disabled={loading}
+                accessibilityLabel="Send OTP button"
+              >
+                <Text style={styles.ctaText}>
+                  {loading ? 'Sending…' : 'Send OTP →'}
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <GlassInput
+                label="Email"
+                value={email}
+                onChangeText={() => {}}
+                borderColor={theme.backgroundSelected}
+                textColor={theme.text}
+                placeholderColor={placeholderColor}
+                labelColor={labelColor}
+                editable={false}
+              />
+
+              <View style={styles.otpSection}>
+                <Text style={[inputStyles.label, { color: labelColor }]}>One-Time Password</Text>
+                <OtpInput
+                  value={otp}
+                  onChange={setOtp}
+                  borderColor={theme.backgroundSelected}
+                  textColor={theme.text}
+                />
+              </View>
+
+              {statusMessage !== '' && (
+                <Text style={[styles.statusText, { color: isError ? '#E53E3E' : '#38A169' }]}>
+                  {statusMessage}
+                </Text>
+              )}
+
+              <TouchableOpacity
+                style={[styles.ctaButton, { opacity: loading ? 0.6 : 1 }]}
+                onPress={handleVerifyOtp}
+                disabled={loading}
+                accessibilityLabel="Verify OTP and sign in"
+              >
+                <Text style={styles.ctaText}>
+                  {loading ? 'Verifying…' : 'Sign In →'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={handleBack} accessibilityLabel="Back to email step">
+                <Text style={[styles.linkText, { color: theme.textSecondary }]}>
+                  ← Use a different email
+                </Text>
+              </TouchableOpacity>
+            </>
           )}
-
-          <TouchableOpacity
-            style={[styles.ctaButton, { opacity: loading ? 0.6 : 1 }]}
-            onPress={handleSignIn}
-            disabled={loading}
-            accessibilityLabel="Sign in button"
-          >
-            <Text style={styles.ctaText}>
-              {loading ? 'Signing in…' : 'Sign In →'}
-            </Text>
-          </TouchableOpacity>
         </View>
 
         {/* Footer */}
@@ -232,12 +393,14 @@ const styles = StyleSheet.create({
     shadowRadius: 24, shadowOffset: { width: 0, height: 12 },
     maxWidth: 600, width: '100%', alignSelf: 'center',
   },
+  otpSection: { gap: Spacing.two },
   statusText: { fontSize: 12, textAlign: 'center' },
   ctaButton: {
     borderRadius: 14, paddingVertical: 16,
     alignItems: 'center', backgroundColor: '#2D6BE4',
   },
   ctaText: { fontSize: 15, fontWeight: '700', letterSpacing: 0.4, color: '#FFFFFF' },
+  linkText: { fontSize: 12, textAlign: 'center' },
   footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   footerText: { fontSize: 13 },
   footerLink: { fontSize: 13, fontWeight: '700' },
