@@ -235,6 +235,37 @@ export const indexStyles = StyleSheet.create({
     top: Spacing.four,
     right: Spacing.four,
   },
+  settingsMenuAnchor: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    zIndex: 20,
+    alignItems: 'flex-end',
+  },
+  settingsDropdown: {
+    position: 'absolute',
+    top: Spacing.four + 58,
+    right: Spacing.four,
+    minWidth: 128,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    overflow: 'hidden',
+    shadowColor: '#08131E',
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+  },
+  settingsDropdownItem: {
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.three,
+  },
+  settingsDropdownText: {
+    fontSize: 13,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
 
   playbackContainer: {
   marginTop: 'auto', // Pushes the whole block to the bottom of the card
