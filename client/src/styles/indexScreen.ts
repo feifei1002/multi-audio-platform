@@ -3,7 +3,8 @@ import { StyleSheet } from 'react-native';
 import { Spacing } from '@/constants/theme';
 import { CORNER_BUTTON_SIZE } from '@/styles/cornerButton';
 
-const SETTINGS_DROPDOWN_TOP_OFFSET = CORNER_BUTTON_SIZE - (Spacing.one + Spacing.half);
+const SETTINGS_DROPDOWN_BUTTON_OVERLAP = Spacing.one + Spacing.half;
+const SETTINGS_DROPDOWN_TOP_OFFSET = CORNER_BUTTON_SIZE - SETTINGS_DROPDOWN_BUTTON_OVERLAP;
 
 export const indexStyles = StyleSheet.create({
   screen: {
