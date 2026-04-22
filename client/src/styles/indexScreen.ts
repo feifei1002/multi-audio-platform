@@ -1,6 +1,7 @@
 import { StyleSheet } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
+import { CORNER_BUTTON_SIZE } from '@/styles/cornerButton';
 
 export const indexStyles = StyleSheet.create({
   screen: {
@@ -244,7 +245,7 @@ export const indexStyles = StyleSheet.create({
   },
   settingsDropdown: {
     position: 'absolute',
-    top: Spacing.four + 58,
+    top: Spacing.four + CORNER_BUTTON_SIZE,
     right: Spacing.four,
     minWidth: 128,
     borderRadius: 16,
