@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, DimensionValue, Pressable, Text, View } from 'react-native';
+import { Animated, Pressable, Text, View } from 'react-native';
 import { RotateCcw, RotateCw } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 
