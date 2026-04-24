@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, DimensionValue, Pressable, Text, View } from 'react-native';
+import { Animated, Pressable, Text, View } from 'react-native';
 import { RotateCcw, RotateCw } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 
 import { indexStyles } from '@/styles/indexScreen';
 import { SettingsButton } from '@/components/SettingsButton';
@@ -8,7 +9,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { AudioInformationBoard } from '@/components/AudioInformationBoard';
 import { AudioData } from '@/types/audio';
 import { CARDS } from '@/types/cards';
-import { getUserSession } from '@/utils/storage';
+import { clearUserSession, getUserSession } from '@/utils/storage';
 import { UserProfile } from '@/types/user';
 import { PlayToggleButton } from '@/components/PlayToggleButton';
 import { ProgressBar } from '@/components/ProgressBar';
@@ -17,6 +18,7 @@ type ContentKey = 'music' | 'podcast';
 
 export default function App() {
   const theme = useTheme();
+  const router = useRouter();
   
   // --- STATE: UI & Navigation ---
   const [activeCardIndex, setActiveCardIndex] = useState<number>(
@@ -24,6 +26,7 @@ export default function App() {
   );
   const swapProgress = useRef(new Animated.Value(0)).current;
   const [loading, setLoading] = useState(true);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // --- STATE: User & Session ---
   const [userId, setUserId] = useState<number | null>(null);
@@ -85,6 +88,16 @@ export default function App() {
   const handleCardPress = () => {
     if (isDraggingSlider) return; 
     setActiveCardIndex((prev) => (prev + 1) % CARDS.length);
+    setIsSettingsOpen(false);
+  };
+
+  const handleSignOut = async () => {
+    await clearUserSession('userId');
+    setUserId(null);
+    setUserProfile(null);
+    setIsSettingsOpen(false);
+    setIsPlaying(false);
+    router.replace('/sign_in');
   };
 
   // --- EFFECTS ---
@@ -310,7 +323,27 @@ export default function App() {
           })}
         </View>
       </View>
-      <SettingsButton style={indexStyles.settingsButton} backgroundColor={theme.backgroundSelected} textColor={theme.textSecondary} />
+      <View style={indexStyles.settingsMenuAnchor}>
+        <SettingsButton
+          style={indexStyles.settingsButton}
+          backgroundColor={theme.backgroundSelected}
+          textColor={theme.textSecondary}
+          onPress={() => setIsSettingsOpen((prev) => !prev)}
+        />
+        {isSettingsOpen && (
+          <View style={[indexStyles.settingsDropdown, { backgroundColor: theme.backgroundSelected }]}>
+            <Pressable
+              onPress={handleSignOut}
+              style={indexStyles.settingsDropdownItem}
+              accessibilityLabel="Sign out"
+            >
+              <Text style={[indexStyles.settingsDropdownText, { color: theme.text }]}>
+                Sign out
+              </Text>
+            </Pressable>
+          </View>
+        )}
+      </View>
     </View>
   );
 }

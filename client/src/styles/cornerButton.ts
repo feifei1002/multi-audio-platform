@@ -1,10 +1,12 @@
 import { StyleSheet } from 'react-native';
 
+export const CORNER_BUTTON_SIZE = 64;
+
 export const cornerButtonStyles = StyleSheet.create({
   base: {
     position: 'absolute',
-    width: 64,
-    height: 64,
+    width: CORNER_BUTTON_SIZE,
+    height: CORNER_BUTTON_SIZE,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
