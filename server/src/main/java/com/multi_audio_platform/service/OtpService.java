@@ -24,6 +24,8 @@ public class OtpService {
 
     private final UserRepository userRepository;
     private final JavaMailSender mailSender;
+    private final HashingService hashingService;
+    private final EncryptionService encryptionService;
 
     private final Map<String, OtpEntry> signUpOtpStore = new ConcurrentHashMap<>();
     private final Map<String, OtpEntry> signInOtpStore = new ConcurrentHashMap<>();
@@ -31,18 +33,17 @@ public class OtpService {
     private static final int OTP_EXPIRY_MINUTES = 5;
     private static final int MAX_OTP_ATTEMPTS = 3;
 
-    // ─── Send Sign Up OTP (for unverified users) ──────────────────────────────
+    // ─── Send Sign Up OTP ─────────────────────────────────────────────────────
 
-    public RegisterResponse sendSignUpOtp(String email) {
-        if (email == null || email.isBlank()) {
+    public RegisterResponse sendSignUpOtp(String rawEmail) {
+        if (rawEmail == null || rawEmail.isBlank()) {
             return new RegisterResponse(false, "Please enter your email.", null);
         }
 
-        if (!email.contains("@")) {
-            return new RegisterResponse(false, "Please enter a valid email address.", null);
-        }
+        String key = rawEmail.toLowerCase().trim();
+        String emailHash = hashingService.hashEmail(key);
 
-        Optional<User> optionalUser = userRepository.findByEmail(email.toLowerCase().trim());
+        Optional<User> optionalUser = userRepository.findByEmail(emailHash);
         if (optionalUser.isEmpty()) {
             return new RegisterResponse(false, "No account found with this email.", null);
         }
@@ -53,20 +54,23 @@ public class OtpService {
             return new RegisterResponse(false, "Account is already verified. Please sign in.", null);
         }
 
-        // Reset attempts when resending OTP
+        // Reset attempts on resend
         user.setOtpAttempts(0);
         userRepository.save(user);
 
         String otp = generateOtp();
         LocalDateTime expiry = LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES);
-        signUpOtpStore.put(email.toLowerCase().trim(), new OtpEntry(otp, expiry));
+        signUpOtpStore.put(key, new OtpEntry(otp, expiry));
+
+        // Decrypt first name for email greeting
+        String firstName = encryptionService.decrypt(user.getFirstName());
 
         try {
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(email);
+            message.setTo(key);
             message.setSubject("Activate your Multi-Audio Platform account");
             message.setText(
-                "Hi " + user.getFirstName() + ",\n\n" +
+                "Hi " + firstName + ",\n\n" +
                 "Your account activation code is: " + otp + "\n\n" +
                 "This code expires in " + OTP_EXPIRY_MINUTES + " minutes.\n\n" +
                 "If you didn't create an account, you can safely ignore this email.\n\n" +
@@ -77,17 +81,18 @@ public class OtpService {
             return new RegisterResponse(false, "Failed to send OTP. Please try again.", null);
         }
 
-        return new RegisterResponse(true, "Activation code sent to " + email, null);
+        return new RegisterResponse(true, "Activation code sent to " + key, null);
     }
 
     // ─── Verify Sign Up OTP ───────────────────────────────────────────────────
 
-    public RegisterResponse verifySignUpOtp(String email, String otp) {
-        if (email == null || otp == null) {
+    public RegisterResponse verifySignUpOtp(String rawEmail, String otp) {
+        if (rawEmail == null || otp == null) {
             return new RegisterResponse(false, "Invalid request.", null);
         }
 
-        String key = email.toLowerCase().trim();
+        String key = rawEmail.toLowerCase().trim();
+        String emailHash = hashingService.hashEmail(key);
         OtpEntry entry = signUpOtpStore.get(key);
 
         if (entry == null) {
@@ -101,7 +106,7 @@ public class OtpService {
         }
 
         if (!entry.otp().equals(otp.trim())) {
-            Optional<User> optionalUser = userRepository.findByEmail(key);
+            Optional<User> optionalUser = userRepository.findByEmail(emailHash);
             if (optionalUser.isPresent()) {
                 User user = optionalUser.get();
                 int attempts = (user.getOtpAttempts() == null ? 0 : user.getOtpAttempts()) + 1;
@@ -123,7 +128,7 @@ public class OtpService {
         }
 
         // OTP correct — mark user as verified
-        User user = userRepository.findByEmail(key)
+        User user = userRepository.findByEmail(emailHash)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         user.setVerified(true);
@@ -145,18 +150,21 @@ public class OtpService {
         return new RegisterResponse(true, "Account activated successfully!", user.getId());
     }
 
-    // ─── Send Sign In OTP (for verified users) ────────────────────────────────
+    // ─── Send Sign In OTP ─────────────────────────────────────────────────────
 
-    public RegisterResponse sendSignInOtp(String email) {
-        if (email == null || email.isBlank()) {
+    public RegisterResponse sendSignInOtp(String rawEmail) {
+        if (rawEmail == null || rawEmail.isBlank()) {
             return new RegisterResponse(false, "Please enter your email.", null);
         }
 
-        if (!email.contains("@")) {
+        if (!rawEmail.contains("@")) {
             return new RegisterResponse(false, "Please enter a valid email address.", null);
         }
 
-        Optional<User> optionalUser = userRepository.findByEmail(email.toLowerCase().trim());
+        String key = rawEmail.toLowerCase().trim();
+        String emailHash = hashingService.hashEmail(key);
+
+        Optional<User> optionalUser = userRepository.findByEmail(emailHash);
         if (optionalUser.isEmpty()) {
             return new RegisterResponse(false, "No account found with this email.", null);
         }
@@ -170,14 +178,16 @@ public class OtpService {
 
         String otp = generateOtp();
         LocalDateTime expiry = LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES);
-        signInOtpStore.put(email.toLowerCase().trim(), new OtpEntry(otp, expiry));
+        signInOtpStore.put(key, new OtpEntry(otp, expiry));
+
+        String firstName = encryptionService.decrypt(user.getFirstName());
 
         try {
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(email);
+            message.setTo(key);
             message.setSubject("Your Multi-Audio Platform Sign-In Code");
             message.setText(
-                "Hi " + user.getFirstName() + ",\n\n" +
+                "Hi " + firstName + ",\n\n" +
                 "Your one-time sign-in code is: " + otp + "\n\n" +
                 "This code expires in " + OTP_EXPIRY_MINUTES + " minutes.\n\n" +
                 "If you didn't request this, please ignore this email.\n\n" +
@@ -188,17 +198,17 @@ public class OtpService {
             return new RegisterResponse(false, "Failed to send OTP. Please try again.", null);
         }
 
-        return new RegisterResponse(true, "OTP sent to " + email, null);
+        return new RegisterResponse(true, "OTP sent to " + key, null);
     }
 
     // ─── Verify Sign In OTP ───────────────────────────────────────────────────
 
-    public SignInResponse verifySignInOtp(String email, String otp) {
-        if (email == null || otp == null) {
+    public SignInResponse verifySignInOtp(String rawEmail, String otp) {
+        if (rawEmail == null || otp == null) {
             return new SignInResponse(false, "Invalid request.", null, null);
         }
 
-        String key = email.toLowerCase().trim();
+        String key = rawEmail.toLowerCase().trim();
         OtpEntry entry = signInOtpStore.get(key);
 
         if (entry == null) {
@@ -216,14 +226,15 @@ public class OtpService {
 
         signInOtpStore.remove(key);
 
-        User user = userRepository.findByEmail(key)
+        String emailHash = hashingService.hashEmail(key);
+        User user = userRepository.findByEmail(emailHash)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         String redirect = Boolean.TRUE.equals(user.getLinked()) ? "main" : "linking";
         return new SignInResponse(true, "Signed in successfully!", redirect, user.getId());
     }
 
-    // ─── Scheduled cleanup — runs every 5 minutes ─────────────────────────────
+    // ─── Scheduled cleanup ────────────────────────────────────────────────────
 
     @Scheduled(fixedRate = 300000)
     public void cleanUpUnverifiedUsers() {
