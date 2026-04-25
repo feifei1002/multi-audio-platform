@@ -13,8 +13,9 @@ import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
-    Optional<User> findByEmail(String email);
-    boolean existsByEmail(String email);
+    // email column now stores SHA-256 hash — pass hashed value to these methods
+    Optional<User> findByEmail(String emailHash);
+    boolean existsByEmail(String emailHash);
     Optional<User> findByVerificationToken(String token);
 
     @Modifying
