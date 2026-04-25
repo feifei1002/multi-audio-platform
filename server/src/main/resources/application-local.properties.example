@@ -4,3 +4,4 @@ DB_PASSWORD=provided_password
 APP_BASE_URL=http://localhost:8080
 MAIL_USERNAME=provided_mail_username
 MAIL_PASSWORD=provided_mail_password
+ENCRYPTION_SECRET_KEY=provided_key
