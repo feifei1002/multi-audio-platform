@@ -54,10 +54,6 @@ public class OtpService {
             return new RegisterResponse(false, "Account is already verified. Please sign in.", null);
         }
 
-        // Reset attempts on resend
-        user.setOtpAttempts(0);
-        userRepository.save(user);
-
         String otp = generateOtp();
         LocalDateTime expiry = LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES);
         signUpOtpStore.put(key, new OtpEntry(otp, expiry));
