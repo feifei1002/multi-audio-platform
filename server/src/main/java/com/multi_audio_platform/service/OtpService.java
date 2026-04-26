@@ -124,9 +124,14 @@ public class OtpService {
         }
 
         // OTP correct — mark user as verified
-        User user = userRepository.findByEmail(emailHash)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        Optional<User> optionalUser = userRepository.findByEmail(emailHash);
+        if (optionalUser.isEmpty()) {
+            signUpOtpStore.remove(key);
+            return new RegisterResponse(false,
+                "Registration was not found or has expired. Please sign up again.", null);
+        }
 
+        User user = optionalUser.get();
         user.setVerified(true);
         user.setVerificationToken(null);
         user.setOtpAttempts(0);
