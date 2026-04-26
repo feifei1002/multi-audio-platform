@@ -77,7 +77,32 @@ public class EncryptionService {
     // ─── Helper ───────────────────────────────────────────────────────────────
 
     private SecretKey getSecretKey() {
-        byte[] keyBytes = Base64.getDecoder().decode(secretKeyBase64);
+        if (secretKeyBase64 == null || secretKeyBase64.trim().isEmpty()) {
+            throw new IllegalStateException(
+                    "Invalid encryption.secret.key configuration: value is missing or blank. " +
+                            "Expected Base64-encoded AES key bytes (16, 24, or 32 bytes; 32 bytes recommended for AES-256).");
+        }
+
+        final byte[] keyBytes;
+        try {
+            keyBytes = Base64.getDecoder().decode(secretKeyBase64);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException(
+                    "Invalid encryption.secret.key configuration: value is not valid Base64. " +
+                            "Expected Base64-encoded AES key bytes (16, 24, or 32 bytes; 32 bytes recommended for AES-256).",
+                    e);
+        }
+
+        if (!isValidAesKeyLength(keyBytes.length)) {
+            throw new IllegalStateException(
+                    "Invalid encryption.secret.key configuration: decoded key length is " + keyBytes.length +
+                            " bytes. AES keys must be 16, 24, or 32 bytes; use Base64 of 32 bytes for AES-256.");
+        }
+
         return new SecretKeySpec(keyBytes, "AES");
+    }
+
+    private boolean isValidAesKeyLength(int keyLengthBytes) {
+        return keyLengthBytes == 16 || keyLengthBytes == 24 || keyLengthBytes == 32;
     }
 }
