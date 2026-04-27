@@ -4,7 +4,6 @@ import com.multi_audio_platform.dto.OtpRequest;
 import com.multi_audio_platform.dto.OtpVerifyRequest;
 import com.multi_audio_platform.dto.RegisterRequest;
 import com.multi_audio_platform.dto.RegisterResponse;
-import com.multi_audio_platform.dto.SignInRequest;
 import com.multi_audio_platform.dto.SignInResponse;
 import com.multi_audio_platform.service.OtpService;
 import com.multi_audio_platform.service.UserService;
@@ -45,11 +44,18 @@ public class AuthController {
         return ResponseEntity.status(status).body(response);
     }
 
-    // ─── Sign In ──────────────────────────────────────────────────────────────
+    // ─── Sign In OTP ──────────────────────────────────────────────────────────
 
-    @PostMapping("/sign-in")
-    public ResponseEntity<SignInResponse> signIn(@RequestBody SignInRequest request) {
-        SignInResponse response = userService.signIn(request.getEmail());
+    @PostMapping("/send-otp")
+    public ResponseEntity<RegisterResponse> sendSignInOtp(@RequestBody OtpRequest request) {
+        RegisterResponse response = otpService.sendSignInOtp(request.getEmail());
+        int status = response.isSuccess() ? 200 : 400;
+        return ResponseEntity.status(status).body(response);
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<SignInResponse> verifySignInOtp(@RequestBody OtpVerifyRequest request) {
+        SignInResponse response = otpService.verifySignInOtp(request.getEmail(), request.getOtp());
         int status = response.isSuccess() ? 200 : 400;
         return ResponseEntity.status(status).body(response);
     }

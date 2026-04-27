@@ -8,9 +8,6 @@ import com.multi_audio_platform.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.Optional;
 
 @Service
@@ -19,6 +16,8 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final OtpService otpService;
+    private final EncryptionService encryptionService;
+    private final HashingService hashingService;
 
     // ─── Register ─────────────────────────────────────────────────────────────
 
@@ -34,39 +33,47 @@ public class UserService {
             return new RegisterResponse(false, "Please enter a valid email address.", null);
         }
 
-        if (userRepository.existsByEmail(request.getEmail().toLowerCase().trim())) {
+        String rawEmail = request.getEmail().toLowerCase().trim();
+        String emailHash = hashingService.hashEmail(rawEmail);
+
+        // Check if email already exists using hash
+        Optional<User> existingUser = userRepository.findByEmail(emailHash);
+        if (existingUser.isPresent()) {
+            User user = existingUser.get();
+            if (!Boolean.TRUE.equals(user.getVerified())) {
+                return new RegisterResponse(false, "UNVERIFIED_ACCOUNT", user.getId());
+            }
             return new RegisterResponse(false, "An account with this email already exists.", null);
         }
 
-        LocalDate dob;
-        try {
-            String cleaned = request.getDateOfBirth().replace(" ", "");
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-            dob = LocalDate.parse(cleaned, formatter);
-        } catch (DateTimeParseException e) {
+        // Validate date format before encrypting
+        if (!request.getDateOfBirth().matches("\\d{2}/\\d{2}/\\d{4}")) {
             return new RegisterResponse(false, "Invalid date format. Use DD/MM/YYYY.", null);
         }
 
+        // Encrypt PII before saving
         User user = User.builder()
-                .firstName(request.getFirstName().trim())
-                .lastName(request.getLastName().trim())
-                .dateOfBirth(dob)
-                .email(request.getEmail().toLowerCase().trim())
+                .firstName(encryptionService.encrypt(request.getFirstName().trim()))
+                .lastName(encryptionService.encrypt(request.getLastName().trim()))
+                .dateOfBirth(encryptionService.encrypt(request.getDateOfBirth().trim()))
+                .email(emailHash)
+                .emailEncrypted(encryptionService.encrypt(rawEmail))
                 .verified(false)
                 .linked(false)
                 .build();
 
         userRepository.save(user);
 
-        RegisterResponse otpResult = otpService.sendSignUpOtp(user.getEmail());
+        // Send OTP using the raw email (decrypted)
+        RegisterResponse otpResult = otpService.sendSignUpOtp(rawEmail);
         if (!otpResult.isSuccess()) {
-            return new RegisterResponse(false,
+            return new RegisterResponse(true,
                 "Account created but we couldn't send the activation code. Please contact support.",
                 user.getId());
         }
 
         return new RegisterResponse(true,
-            "Account created! Please enter the code sent to " + user.getEmail(),
+            "Account created! Please enter the code sent to " + rawEmail,
             user.getId());
     }
 
@@ -74,37 +81,45 @@ public class UserService {
 
     public SignInResponse signIn(String email) {
         if (email == null || email.isBlank()) {
-            return new SignInResponse(false, "Please enter your email.", null,null);
+            return new SignInResponse(false, "Please enter your email.", null, null);
         }
 
         if (!email.contains("@")) {
-            return new SignInResponse(false, "Please enter a valid email address.", null,null);
+            return new SignInResponse(false, "Please enter a valid email address.", null, null);
         }
 
-        Optional<User> optionalUser = userRepository.findByEmail(email.toLowerCase().trim());
+        // Hash the email for lookup
+        String emailHash = hashingService.hashEmail(email.toLowerCase().trim());
+        Optional<User> optionalUser = userRepository.findByEmail(emailHash);
 
         if (optionalUser.isEmpty()) {
-            return new SignInResponse(false, "No account found with this email.", null,null);
+            return new SignInResponse(false, "No account found with this email.", null, null);
         }
 
         User user = optionalUser.get();
 
         if (!Boolean.TRUE.equals(user.getVerified())) {
             return new SignInResponse(false,
-                "Your account is not verified. Please check your email for the activation code.", null,null);
+                "Your account is not verified. Please check your email for the activation code.", null, null);
         }
 
-        // Redirect based on whether user has linked a service
         if (!Boolean.TRUE.equals(user.getLinked())) {
-            return new SignInResponse(true, "Welcome back, " + user.getFirstName() + "!", "linking", user.getId());
+            return new SignInResponse(true, "Welcome back!", "linking", user.getId());
         }
 
-        return new SignInResponse(true, "Welcome back, " + user.getFirstName() + "!", "main", user.getId());
+        return new SignInResponse(true, "Welcome back!", "main", user.getId());
     }
 
     // ─── Get User By ID ───────────────────────────────────────────────────────
+    // Decrypts PII before returning to frontend
 
     public Optional<User> getUserById(Long id) {
-        return userRepository.findById(id);
+        return userRepository.findById(id).map(user -> {
+            user.setFirstName(encryptionService.decrypt(user.getFirstName()));
+            user.setLastName(encryptionService.decrypt(user.getLastName()));
+            user.setDateOfBirth(encryptionService.decrypt(user.getDateOfBirth()));
+            user.setEmailEncrypted(encryptionService.decrypt(user.getEmailEncrypted()));
+            return user;
+        });
     }
 }

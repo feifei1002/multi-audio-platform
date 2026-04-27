@@ -8,6 +8,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  AppState,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/hooks/use-theme';
@@ -15,7 +16,7 @@ import { Spacing } from '@/constants/theme';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type Step = 'form' | 'otp';
+type Step = 'form' | 'otp' | 'continue';
 
 interface SignUpForm {
   firstName: string;
@@ -30,7 +31,11 @@ interface SignUpScreenProps {
 
 // ─── API calls ────────────────────────────────────────────────────────────────
 
-async function registerUser(form: SignUpForm): Promise<{ success: boolean; message: string }> {
+async function registerUser(form: SignUpForm): Promise<{
+  success: boolean;
+  message: string;
+  userId?: number;
+}> {
   try {
     const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/auth/register`, {
       method: 'POST',
@@ -211,6 +216,7 @@ export default function SignUpScreen({ onNavigateToSignIn }: SignUpScreenProps) 
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [isError, setIsError] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
 
   const placeholderColor = 'rgba(0,0,0,0.25)';
   const labelColor = 'rgba(0,0,0,0.6)';
@@ -218,7 +224,7 @@ export default function SignUpScreen({ onNavigateToSignIn }: SignUpScreenProps) 
   const setField = (field: keyof SignUpForm) => (value: string) =>
     setForm(prev => ({ ...prev, [field]: value }));
 
-  // ── Submit form ───────────────────────────────────────────────────
+  // ── Submit form ───────────────────────────────────────────────────────────
 
   const handleRegister = async () => {
     const { firstName, lastName, dateOfBirth, email } = form;
@@ -232,14 +238,50 @@ export default function SignUpScreen({ onNavigateToSignIn }: SignUpScreenProps) 
     setStatusMessage('Creating your account…');
     const result = await registerUser(form);
     setLoading(false);
+
+    if (result.success) {
+      setRegisteredEmail(form.email.trim().toLowerCase());
+      setIsError(false);
+      setStatusMessage('');
+      setStep('otp');
+    } else if (result.message === 'UNVERIFIED_ACCOUNT') {
+      // Unverified account exists — show continue prompt
+      setRegisteredEmail(form.email.trim().toLowerCase());
+      setIsError(false);
+      setStatusMessage('');
+      setStep('continue');
+    } else {
+      setIsError(true);
+      setStatusMessage(result.message);
+    }
+  };
+
+  // ── Continue signup — resend OTP and go to OTP step ──────────────────────
+
+  const handleContinueSignup = async () => {
+    setLoading(true);
+    setIsError(false);
+    setStatusMessage('Sending new code…');
+    const result = await resendSignUpOtp(registeredEmail);
+    setLoading(false);
     setIsError(!result.success);
     setStatusMessage(result.message);
     if (result.success) {
+      setOtp('');
       setStep('otp');
     }
   };
 
-  // ── Verify OTP ────────────────────────────────────────────────────
+  const handleStartFresh = () => {
+    // Go back to form with email cleared so user knows they need a different email
+    setStep('form');
+    setForm({ firstName: '', lastName: '', dateOfBirth: '', email: '' });
+    setRegisteredEmail('');
+    setStatusMessage('');
+    setIsError(false);
+  };
+
+  // ── Verify OTP ────────────────────────────────────────────────────────────
 
   const handleVerifyOtp = async () => {
     if (otp.length < 6) {
@@ -250,13 +292,25 @@ export default function SignUpScreen({ onNavigateToSignIn }: SignUpScreenProps) 
     setLoading(true);
     setIsError(false);
     setStatusMessage('Verifying…');
-    const result = await verifySignUpOtp(form.email, otp);
+    const result = await verifySignUpOtp(registeredEmail, otp);
     setLoading(false);
     setIsError(!result.success);
     setStatusMessage(result.message);
+
     if (result.success) {
-      // Redirect to linking page
+      setRegisteredEmail('');
       router.replace('/linking' as any);
+    }
+
+    if (!result.success && result.message.includes('cancelled')) {
+      setTimeout(() => {
+        setStep('form');
+        setOtp('');
+        setForm({ firstName: '', lastName: '', dateOfBirth: '', email: '' });
+        setStatusMessage('');
+        setIsError(false);
+        setRegisteredEmail('');
+      }, 2000);
     }
   };
 
@@ -264,10 +318,11 @@ export default function SignUpScreen({ onNavigateToSignIn }: SignUpScreenProps) 
     setLoading(true);
     setIsError(false);
     setStatusMessage('Resending code…');
-    const result = await resendSignUpOtp(form.email);
+    const result = await resendSignUpOtp(registeredEmail);
     setLoading(false);
     setIsError(!result.success);
     setStatusMessage(result.message);
+    if (result.success) setOtp('');
   };
 
   const handleBackToForm = () => {
@@ -275,6 +330,20 @@ export default function SignUpScreen({ onNavigateToSignIn }: SignUpScreenProps) 
     setOtp('');
     setStatusMessage('');
     setIsError(false);
+  };
+
+  // ── Header text per step ──────────────────────────────────────────────────
+
+  const headerTitle = () => {
+    if (step === 'form') return 'Create Account';
+    if (step === 'otp') return 'Verify Email';
+    return 'Welcome Back';
+  };
+
+  const headerSubtitle = () => {
+    if (step === 'form') return 'Join to enjoy!';
+    if (step === 'otp') return `Enter the 6-digit code sent to ${registeredEmail}`;
+    return `We found an incomplete signup for ${registeredEmail}`;
   };
 
   return (
@@ -292,19 +361,15 @@ export default function SignUpScreen({ onNavigateToSignIn }: SignUpScreenProps) 
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: theme.text }]}>
-            {step === 'form' ? 'Create Account' : 'Verify Email'}
-          </Text>
-          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-            {step === 'form'
-              ? 'Join to enjoy!'
-              : `Enter the 6-digit code sent to ${form.email}`}
-          </Text>
+          <Text style={[styles.title, { color: theme.text }]}>{headerTitle()}</Text>
+          <Text style={[styles.subtitle, { color: theme.textSecondary }]}>{headerSubtitle()}</Text>
         </View>
 
         {/* Single glass card */}
         <View style={[styles.glassCard, { borderColor: theme.backgroundSelected }]}>
-          {step === 'form' ? (
+
+          {/* ── Form step ── */}
+          {step === 'form' && (
             <>
               <View style={styles.formGrid}>
                 <GlassInput
@@ -352,7 +417,50 @@ export default function SignUpScreen({ onNavigateToSignIn }: SignUpScreenProps) 
                 </Text>
               </TouchableOpacity>
             </>
-          ) : (
+          )}
+
+          {/* ── Continue step ── */}
+          {step === 'continue' && (
+            <>
+              <View style={styles.continueBox}>
+                <Text style={[styles.continueTitle, { color: theme.text }]}>
+                  You already started signing up.{'\n'}Continue?
+                </Text>
+                <Text style={[styles.continueSubtitle, { color: theme.textSecondary }]}>
+                  We'll send a new activation code to{'\n'}{registeredEmail}
+                </Text>
+              </View>
+
+              {statusMessage !== '' && (
+                <Text style={[styles.statusText, { color: isError ? '#E53E3E' : '#38A169' }]}>
+                  {statusMessage}
+                </Text>
+              )}
+
+              <TouchableOpacity
+                style={[styles.ctaButton, { opacity: loading ? 0.6 : 1 }]}
+                onPress={handleContinueSignup}
+                disabled={loading}
+                accessibilityLabel="Continue signup button"
+              >
+                <Text style={styles.ctaText}>
+                  {loading ? 'Sending…' : 'Resend OTP & Continue →'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleStartFresh}
+                accessibilityLabel="Use different email"
+              >
+                <Text style={[styles.linkText, { color: theme.textSecondary }]}>
+                  Use a different email
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* ── OTP step ── */}
+          {step === 'otp' && (
             <>
               <View style={styles.otpSection}>
                 <Text style={[inputStyles.label, { color: labelColor }]}>Activation Code</Text>
@@ -361,6 +469,10 @@ export default function SignUpScreen({ onNavigateToSignIn }: SignUpScreenProps) 
                   borderColor={theme.backgroundSelected} textColor={theme.text}
                 />
               </View>
+
+              <Text style={[styles.hintText, { color: labelColor }]}>
+                Code expires in 5 minutes. If you don't receive it, tap Resend below.
+              </Text>
 
               {statusMessage !== '' && (
                 <Text style={[styles.statusText, { color: isError ? '#E53E3E' : '#38A169' }]}>
@@ -396,6 +508,7 @@ export default function SignUpScreen({ onNavigateToSignIn }: SignUpScreenProps) 
               </TouchableOpacity>
             </>
           )}
+
         </View>
 
         {/* Footer */}
@@ -444,7 +557,24 @@ const styles = StyleSheet.create({
     maxWidth: 600, width: '100%', alignSelf: 'center',
   },
   formGrid: { gap: Spacing.three },
+  continueBox: {
+    gap: Spacing.two,
+    alignItems: 'center',
+    paddingVertical: Spacing.two,
+  },
+  continueTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 26,
+  },
+  continueSubtitle: {
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
   otpSection: { gap: Spacing.two },
+  hintText: { fontSize: 11, textAlign: 'center', opacity: 0.7 },
   statusText: { fontSize: 12, textAlign: 'center' },
   ctaButton: {
     borderRadius: 14, paddingVertical: 16,
